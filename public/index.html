@@ -16,7 +16,7 @@
 <script>
 window.FP_SUPABASE={url:'https://pqrkysbqufrxvqvxnibc.supabase.co',
   key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxcmt5c2JxdWZyeHZxdnhuaWJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MDY1OTgsImV4cCI6MjEwODk4MjU5OH0.GFPDe8uh-PlMSaWSBCYIbzu66qN71_dmRNk8wTlYNos',
-  google:false};
+  google:true,passkeys:true,passkeyDomain:'financeplanning.app'};
 if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
 </script>
 </head><body>
@@ -422,6 +422,12 @@ footer.status{margin-top:26px;color:var(--muted);font-size:12px;text-align:cente
 .authbox .alt{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:14px}
 .authbox .msg{margin:0;padding:10px 12px;border-radius:10px;background:var(--accent-soft);color:var(--ink);font-size:14px}
 .authbox .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}.authbox .or::before,.authbox .or::after{content:'';flex:1;border-top:1px solid var(--line)}
+.gbtn svg{margin-right:8px;flex:none;vertical-align:-3px}
+.methods{display:grid;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.methrow{display:flex;align-items:center;gap:12px;padding:10px 12px;border-top:1px solid var(--line);flex-wrap:wrap}.methrow:first-child{border-top:0}
+.methic{width:22px;display:inline-grid;place-items:center;font-size:17px}.methn{flex:1;min-width:150px;display:grid;gap:2px}
+.methods>p{padding:10px 12px}
+.acch{margin:0;font-size:15px}
 </style>
 
 <div class="wrap">
@@ -1083,7 +1089,10 @@ const store={
   cloud(){
     this.mode='cloud';this.uid=undefined;
     const C0=window.FP_SUPABASE;
-    this.sb=window.supabase.createClient(C0.url,C0.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    // A failed Google sign-in or account link comes back with an error in the address; show it and tidy the address.
+    try{const q=new URLSearchParams(location.search+'&'+location.hash.replace(/^#/,''));const d=q.get('error_description');
+      if(d){this.authNote=authErrText(d);history.replaceState(null,'',location.pathname);}}catch(e){}
+    this.sb=window.supabase.createClient(C0.url,C0.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,experimental:{passkey:!!C0.passkeys}}});
     setStatus('Connecting…');
     // Supabase advises not to await its own calls inside this callback, so work is deferred.
     this.sb.auth.onAuthStateChange((ev,session)=>{
@@ -1118,6 +1127,8 @@ const store={
       S.expenses=exp;S.ready=true;
       setStatus('Saved to your account. Only you can see this data.');
       render();
+      if(!quiet&&this.authNote){toast(this.authNote);this.authNote='';}
+      if(!quiet&&this.nudgePasskey){this.nudgePasskey=false;setTimeout(maybePasskeyNudge,600);}
     }catch(e){console.warn(e);setStatus('Could not load your data. Check your connection and reload the page.');if(!quiet)toast('Could not load your data.');}
   },
   async cloudBatch(rows,size,fn,onProgress){
@@ -2259,7 +2270,7 @@ function retireBox(I){
 function settingsSections(){
   const I=S.cfg.income;
   return [
-    store.mode==='cloud'?{id:'account',title:'Account',desc:'Your sign-in and password.',render:()=>[accountCard()]}:null,
+    store.mode==='cloud'?{id:'account',title:'Account',desc:'How you sign in, and your account.',render:()=>[accountCard()]}:null,
     {id:'retirement',title:'Retirement accounts',desc:'The most you can put into retirement accounts each year. Deductions marked as retirement savings on your paychecks stop once it’s reached.',render:()=>[retireBox(I)]},
     {id:'auto',title:'Automatic expenses',desc:'Plan lines with Add to Month ticked add themselves to Expenses on their dates, starting from the date each line was set up.',render:()=>[backfillCard()]},
     {id:'appearance',title:'Appearance',desc:'Choose light or dark, or follow your device.',render:()=>[themeCard()]},
@@ -2575,11 +2586,11 @@ $('#sheet').addEventListener('submit',ev=>{
 });
 // Delete asks in a small dialog on top of the form.
 let dlgReturn=null;
-function confirmDialog({title,body,actions,extra}){
+function confirmDialog({title,body,actions,extra,cancelLabel}){
   const ov=$('#confirm'),box=$('#confirm-box');dlgReturn=document.activeElement;
   const close=()=>{ov.hidden=true;box.replaceChildren();if(dlgReturn&&dlgReturn.focus)dlgReturn.focus();};
   box.replaceChildren(h('h3',{id:'confirm-title'},title),body?h('p',{},body):null,extra||null,
-    h('div',{class:'actions'},h('button',{type:'button',class:'btn',id:'confirm-cancel',onclick:close},'Cancel'),
+    h('div',{class:'actions'},h('button',{type:'button',class:'btn',id:'confirm-cancel',onclick:close},cancelLabel||'Cancel'),
       ...actions.map(a=>h('button',{type:'button',class:'btn '+(a.kind||''),onclick:()=>{close();a.onClick();}},a.label))));
   ov.hidden=false;setTimeout(()=>{const c=$('#confirm-cancel');if(c)c.focus();},20);
   ov.onclick=e=>{if(e.target===ov)close();};
@@ -2641,7 +2652,7 @@ function authScreen(mode,note){
     if((mode==='signup'||mode==='reset')&&pw.value!==pw2.value)return fail('The two passwords don’t match.');
     btn.disabled=true;btn.textContent='One moment…';
     try{
-      if(mode==='signin'){const r=await sb.auth.signInWithPassword({email:em,password:pw.value});if(r.error)throw r.error;}
+      if(mode==='signin'){store.nudgePasskey=true;const r=await sb.auth.signInWithPassword({email:em,password:pw.value});if(r.error){store.nudgePasskey=false;throw r.error;}}
       else if(mode==='signup'){const r=await sb.auth.signUp({email:em,password:pw.value,options:{emailRedirectTo:origin}});if(r.error)throw r.error;
         if(!r.data.session)authScreen('sent','We sent a confirmation link to '+em+'. Open it on this device to finish creating your account.');}
       else if(mode==='forgot'){const r=await sb.auth.resetPasswordForEmail(em,{redirectTo:origin});if(r.error)throw r.error;
@@ -2650,13 +2661,19 @@ function authScreen(mode,note){
         toast('Password changed');hideAuth();store.uid=undefined;const s2=(await sb.auth.getSession()).data.session;if(s2){store.uid=s2.user.id;store.email=s2.user.email;store.loadCloud();}}
     }catch(x){console.warn(x);fail(msgFor(x));}};
   const field=(id,l,el,hint)=>h('div',{class:'field'},h('label',{for:id},l),el,hint?h('span',{class:'hint'},hint):null);
-  const google=window.FP_SUPABASE&&window.FP_SUPABASE.google&&(mode==='signin'||mode==='signup')?[
-    h('button',{type:'button',class:'btn',onclick:async()=>{const r=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:origin}});if(r.error)fail(msgFor(r.error));}},'Continue with Google'),
-    h('div',{class:'or'},'or')]:[];
+  const quick=[];
+  if(googleOn()&&(mode==='signin'||mode==='signup'))quick.push(h('button',{type:'button',class:'btn gbtn',onclick:async()=>{err.hidden=true;
+    const r=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:origin}});if(r.error)fail(googleErr(r.error));}},googleMark(),'Continue with Google'));
+  if(pkOn()&&mode==='signin')quick.push(h('button',{type:'button',class:'btn',onclick:async e=>{err.hidden=true;const b=e.currentTarget;b.disabled=true;
+    try{const r=await sb.auth.signInWithPasskey();if(r&&r.error)throw r.error;}
+    catch(x){if(!pkCancelled(x)){console.warn(x);fail(/not found|unknown|no.*credential|not registered/i.test(String(x&&x.message))?'That passkey isn’t linked to an account here. Sign in with your email, then add a passkey in Settings → Account.':pkErr(x));}}
+    finally{b.disabled=false;}}},'🔑 Sign in with a passkey'));
+  if(quick.length)quick.push(h('div',{class:'or'},'or'));
+  if(!note&&store.authNote&&mode==='signin'){note=store.authNote;store.authNote='';}
   let body;
   if(mode==='sent')body=h('div',{class:'card'},h('h2',{},titles.sent),h('p',{class:'msg'},note||''),h('div',{class:'alt'},link('Back to sign in','signin')));
   else body=h('form',{class:'card',novalidate:true,onsubmit:submit},h('h2',{},titles[mode]),
-    note?h('p',{class:'msg'},note):null,...google,
+    note?h('p',{class:'msg'},note):null,...quick,
     mode!=='reset'?field('au-email','Email',email):null,
     mode!=='forgot'?field('au-pw',mode==='reset'?'New password':'Password',pw,mode==='signin'?null:'At least 8 characters.'):null,
     mode==='signup'||mode==='reset'?field('au-pw2','Repeat password',pw2):null,
@@ -2669,14 +2686,96 @@ function authScreen(mode,note){
     h('p',{class:'hint',style:'margin:0;text-align:center'},'Your data is private to your account.')));
   setTimeout(()=>{const f=a.querySelector('input');if(f)f.focus();},30);
 }
+// ----- Google and passkeys (website only) -----
+function googleOn(){return !!(window.FP_SUPABASE&&window.FP_SUPABASE.google);}
+function pkOn(){const F=window.FP_SUPABASE||{},d=F.passkeyDomain||'financeplanning.app',hn=location.hostname;
+  return !!(F.passkeys&&window.PublicKeyCredential&&store.sb&&store.sb.auth.registerPasskey&&(hn===d||hn.endsWith('.'+d)));}
+function googleMark(){const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 48 48');svg.setAttribute('width','18');svg.setAttribute('height','18');svg.setAttribute('aria-hidden','true');
+  [['#EA4335','M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z'],['#4285F4','M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z'],
+   ['#FBBC05','M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z'],['#34A853','M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z']]
+   .forEach(([f,d])=>{const p=document.createElementNS(ns,'path');p.setAttribute('fill',f);p.setAttribute('d',d);svg.append(p);});return svg;}
+function authErrText(d){d=String(d||'').replace(/\+/g,' ');
+  if(/already linked|identity_already_exists/i.test(d))return 'That Google account is already used by a different Finance Planning account.';
+  if(/manual linking/i.test(d))return 'Connecting Google isn’t turned on yet.';
+  if(/provider is not enabled|unsupported provider/i.test(d))return 'Google sign-in isn’t turned on yet.';
+  if(/access_denied|denied/i.test(d))return 'Google sign-in was canceled.';
+  return 'Google sign-in didn’t work: '+d;}
+function googleErr(e){return authErrText(e&&e.message||e);}
+const pkCancelled=e=>/NotAllowed|not allowed|cancel|abort|timed out|timeout/i.test(String(e&&((e.name||'')+' '+(e.message||'')))+String(e&&e.cause&&e.cause.name||''));
+function pkErr(e){const m=String(e&&e.message||e||'');
+  if(/InvalidState|already registered|exclude/i.test(m))return 'This device already has a passkey for your account.';
+  if(/too_many|too many passkeys/i.test(m))return 'You’ve reached the passkey limit. Remove one first.';
+  if(/not enabled|disabled|passkey.*off/i.test(m))return 'Passkeys aren’t turned on yet.';
+  if(/not support/i.test(m))return 'This browser doesn’t support passkeys.';
+  return 'Passkey didn’t work. Try again.';}
+function deviceName(){const u=navigator.userAgent||'';
+  return /iPhone/.test(u)?'iPhone':(/iPad/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1))?'iPad':/Android/.test(u)?'Android':/Macintosh|Mac OS/.test(u)?'Mac':/Windows/.test(u)?'Windows':/CrOS/.test(u)?'Chromebook':/Linux/.test(u)?'Linux':'This device';}
+async function pkList(){const r=await store.sb.auth.passkey.list();if(r&&r.error)throw r.error;const d=Array.isArray(r)?r:(r&&r.data);return Array.isArray(d)?d:(d&&Array.isArray(d.passkeys)?d.passkeys:[]);}
+async function addPasskey(){
+  try{const r=await store.sb.auth.registerPasskey();if(r&&r.error)throw r.error;
+    const pk=r&&r.data;if(pk&&pk.id&&!pk.friendly_name){try{await store.sb.auth.passkey.update({passkeyId:pk.id,friendlyName:deviceName()});}catch(e){}}
+    toast('Passkey added. Next time, choose “Sign in with a passkey.”');if(view.route==='settings')render();}
+  catch(e){if(pkCancelled(e))return;console.warn(e);toast(pkErr(e));}}
+// After a password sign-in, offer a passkey once per account on this device.
+async function maybePasskeyNudge(){
+  if(!pkOn()||!store.uid)return;const k='fp-pk-nudge-'+store.uid;
+  try{if(localStorage.getItem(k))return;}catch(e){}
+  let list;try{list=await pkList();}catch(e){return;}if(list.length)return;
+  try{localStorage.setItem(k,'1');}catch(e){}
+  confirmDialog({title:'Sign in faster next time?',body:'Add a passkey to sign in with Face ID, Touch ID, your fingerprint or Windows Hello. No password to type.',cancelLabel:'Not now',
+    actions:[{label:'Add a passkey',kind:'primary',onClick:()=>addPasskey()}]});
+}
+function methodRow(icon,name,state,btn){if(icon&&icon.nodeType)icon.style.margin='0';return h('div',{class:'methrow'},h('span',{class:'methic','aria-hidden':'true'},icon),h('span',{class:'methn'},h('b',{},name),state?h('small',{class:'hint'},state):null),btn||null);}
 // Account settings (website only)
 function accountCard(){
-  const sb=store.sb,card=h('div',{class:'card stack'},h('h3',{},'Signed in'),h('p',{style:'margin:0'},h('b',{},store.email||'')));
-  const pw=h('input',{type:'password',id:'acc-pw',autocomplete:'new-password',minlength:'8',placeholder:'At least 8 characters'});
-  card.append(h('details',{},h('summary',{style:'cursor:pointer;font-weight:600'},'Change password'),
-    h('div',{class:'addrow',style:'margin-top:10px;align-items:flex-end'},h('div',{class:'field',style:'flex:1;min-width:200px'},h('label',{for:'acc-pw'},'New password'),pw),
-      h('button',{type:'button',class:'btn',onclick:async()=>{if(pw.value.length<8){toast('Use at least 8 characters.');pw.focus();return;}
-        const r=await sb.auth.updateUser({password:pw.value});if(r.error){toast(r.error.message||'Could not change the password.');return;}pw.value='';toast('Password changed');}},'Save password'))),
+  const sb=store.sb,origin=location.origin+location.pathname;
+  const card=h('div',{class:'card stack'},h('h3',{},'Signed in'),h('p',{style:'margin:0'},h('b',{},store.email||'')));
+  // Ways to sign in: email/password and Google
+  const methods=h('div',{class:'methods'},h('p',{class:'hint',style:'margin:0'},'Loading…'));
+  card.append(h('div',{class:'stack',style:'gap:8px'},h('h4',{class:'acch'},'Ways to sign in'),methods));
+  let hasEmail=true;
+  const pwBox=h('div');
+  sb.auth.getUserIdentities().then(r=>{
+    const ids=(r&&r.data&&r.data.identities)||[];const em=ids.find(i=>i.provider==='email'),g=ids.find(i=>i.provider==='google');
+    hasEmail=!!em;
+    const rows=[methodRow('✉️','Email and password',em?'Set up':'No password yet. Set one below to sign in with your email too.')];
+    if(googleOn()||g)rows.push(methodRow(googleMark(),'Google',g?('Connected'+(g.identity_data&&g.identity_data.email&&g.identity_data.email!==store.email?' · '+g.identity_data.email:'')):'Not connected',
+      g?(ids.length>1&&em?h('button',{type:'button',class:'btn sm',onclick:()=>confirmDialog({title:'Disconnect Google?',body:'You’ll sign in with your email and password instead. You can connect Google again any time.',
+          actions:[{label:'Disconnect',kind:'danger',onClick:async()=>{const x=await sb.auth.unlinkIdentity(g);if(x&&x.error){toast('Could not disconnect Google. Try again.');return;}toast('Google disconnected');render();}}]})},'Disconnect'):null)
+       :h('button',{type:'button',class:'btn sm',onclick:async()=>{const x=await sb.auth.linkIdentity({provider:'google',options:{redirectTo:origin}});if(x&&x.error)toast(googleErr(x.error));}},'Connect Google')));
+    methods.replaceChildren(...rows);
+    pwBox.replaceChildren(pwDetails());
+  }).catch(()=>{methods.replaceChildren(h('p',{class:'hint',style:'margin:0'},'Couldn’t load your sign-in methods.'));pwBox.replaceChildren(pwDetails());});
+  // Passkeys
+  if(pkOn()){
+    const list=h('div',{class:'methods'},h('p',{class:'hint',style:'margin:0'},'Loading…'));
+    card.append(h('div',{class:'stack',style:'gap:8px'},h('h4',{class:'acch'},'Passkeys'),
+      h('p',{class:'hint',style:'margin:0'},'Sign in with Face ID, Touch ID, your fingerprint or Windows Hello instead of a password. Passkeys sync through iCloud Keychain or Google Password Manager.'),
+      list,h('div',{},h('button',{type:'button',class:'btn sm',onclick:()=>addPasskey()},'+ Add a passkey'))));
+    pkList().then(pks=>{
+      if(!pks.length){list.replaceChildren(h('p',{class:'hint',style:'margin:0'},'No passkeys yet.'));return;}
+      list.replaceChildren(...pks.map(pk=>{
+        const nm=pk.friendly_name||'Passkey',when=d=>d?new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+        return methodRow('🔑',nm,'Added '+when(pk.created_at)+(pk.last_used_at?' · Last used '+when(pk.last_used_at):''),
+          h('span',{style:'display:inline-flex;gap:6px'},
+            h('button',{type:'button',class:'btn sm',onclick:()=>{const inp=h('input',{type:'text',id:'pk-name',value:nm,maxlength:'120',autocomplete:'off'});
+              confirmDialog({title:'Rename passkey',extra:h('div',{class:'field'},h('label',{for:'pk-name'},'Name'),inp),actions:[{label:'Save',kind:'primary',onClick:async()=>{
+                const v=inp.value.trim();if(!v)return;try{const x=await sb.auth.passkey.update({passkeyId:pk.id,friendlyName:v});if(x&&x.error)throw x.error;render();}catch(e){toast('Could not rename it. Try again.');}}}]});
+              setTimeout(()=>{inp.focus();inp.select();},40);}},'Rename'),
+            h('button',{type:'button',class:'btn sm',style:'color:var(--danger)',onclick:()=>confirmDialog({title:'Remove “'+nm+'”?',
+              body:'You won’t be able to sign in with this passkey anymore. To clear it from your device too, delete it in your password manager.',
+              actions:[{label:'Remove',kind:'danger',onClick:async()=>{try{const x=await sb.auth.passkey.delete({passkeyId:pk.id});if(x&&x.error)throw x.error;toast('Passkey removed');render();}catch(e){toast('Could not remove it. Try again.');}}}]})},'Remove')));
+      }));
+    }).catch(e=>{console.warn(e);list.replaceChildren(h('p',{class:'hint',style:'margin:0'},'Couldn’t load your passkeys.'));});
+  }
+  function pwDetails(){
+    const pw=h('input',{type:'password',id:'acc-pw',autocomplete:'new-password',minlength:'8',placeholder:'At least 8 characters'});
+    return h('details',{},h('summary',{style:'cursor:pointer;font-weight:600'},hasEmail?'Change password':'Set a password'),
+      h('div',{class:'addrow',style:'margin-top:10px;align-items:flex-end'},h('div',{class:'field',style:'flex:1;min-width:200px'},h('label',{for:'acc-pw'},'New password'),pw),
+        h('button',{type:'button',class:'btn',onclick:async()=>{if(pw.value.length<8){toast('Use at least 8 characters.');pw.focus();return;}
+          const r=await sb.auth.updateUser({password:pw.value});if(r.error){toast(r.error.message||'Could not save the password.');return;}pw.value='';toast(hasEmail?'Password changed':'Password set');render();}},'Save password')));
+  }
+  card.append(pwBox,
     h('div',{class:'actions',style:'justify-content:flex-start;flex-wrap:wrap'},
       h('button',{type:'button',class:'btn',onclick:async()=>{await sb.auth.signOut();location.reload();}},'Sign out'),
       h('button',{type:'button',class:'btn ghost',style:'color:var(--danger)',onclick:()=>{

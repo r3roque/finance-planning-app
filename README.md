@@ -32,11 +32,24 @@ Budget planning, expense tracking, paychecks and a Puerto Rico income tax estima
 
 Every push to `main` deploys automatically.
 
-## Google sign-in (later)
-1. Google Cloud Console → APIs & Services → Credentials → **Create OAuth client ID** (Web application).
-   Authorized redirect URI: `https://pqrkysbqufrxvqvxnibc.supabase.co/auth/v1/callback`.
-2. Supabase → Authentication → Sign In / Providers → **Google**: paste the client ID and secret, enable.
-3. In `build.py` set `google:true`, run `python3 build.py`, push.
+## Google sign-in
+1. Google Cloud Console → **APIs & Services → OAuth consent screen**: app name "Finance Planning", your support email, authorized domain `financeplanning.app`. Publish the app when ready for everyone.
+2. **Credentials → Create credentials → OAuth client ID** → Web application.
+   - Authorized JavaScript origins: `https://financeplanning.app`
+   - Authorized redirect URI: `https://pqrkysbqufrxvqvxnibc.supabase.co/auth/v1/callback`
+3. Supabase → **Authentication → Sign In / Providers → Google**: paste the client ID and secret, enable, save.
+4. Supabase → **Authentication → Sign In / Providers**: turn on **Allow manual linking** so people can connect Google from Settings → Account.
+
+Accounts with the same confirmed email are linked automatically; a different Google email can be connected from Settings → Account.
+
+## Passkeys (beta in Supabase)
+Supabase → **Authentication → Passkeys** → enable, then:
+- Relying Party Display Name: `Finance Planning`
+- Relying Party ID: `financeplanning.app` (don't change it later; that invalidates every passkey)
+- Relying Party Origins: `https://financeplanning.app,https://www.financeplanning.app`
+
+Passkeys work only on financeplanning.app (not the workers.dev address). People add them in Settings → Account, or from the prompt after a password sign-in.
+The switches for both live in `build.py` (`google`, `passkeys`).
 
 ## Notes
 - The Supabase **anon key** in `build.py` is meant to be public; the row level security rules are what keep data private. Never put the `service_role` key in this repo.

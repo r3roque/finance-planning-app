@@ -24,7 +24,7 @@ head='''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <script>
 window.FP_SUPABASE={url:'https://pqrkysbqufrxvqvxnibc.supabase.co',
   key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxcmt5c2JxdWZyeHZxdnhuaWJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MDY1OTgsImV4cCI6MjEwODk4MjU5OH0.GFPDe8uh-PlMSaWSBCYIbzu66qN71_dmRNk8wTlYNos',
-  google:false};
+  google:true,passkeys:true,passkeyDomain:'financeplanning.app'};
 if('serviceWorker' in navigator&&location.protocol==='https:'){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}
 </script>
 </head><body>
