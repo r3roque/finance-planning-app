@@ -2760,14 +2760,8 @@ $('#fab').addEventListener('click',()=>addChooser());
 $('#donefab').addEventListener('click',()=>{view.planEdit=false;render();toast('Changes saved');});
 $('#editfab').addEventListener('click',()=>{view.planEdit=true;render();toast('Editing your plan');});
 
-const ROUTES=['overview','month','year','plan','income','deductions','taxes','import','settings'];
-let lastExp='month';
-function route(){let r=(location.hash||'').replace('#','');if(r==='bills')r='plan';if(r==='expenses')r=lastExp;if(r==='month'||r==='year')lastExp=r;view.route=ROUTES.includes(r)?r:'overview';render();}
-window.addEventListener('hashchange',()=>{route();window.scrollTo(0,0);});
-route();
-
-// ===== Income → Deductions: everything taken out of paychecks, each with its own dates =====
-const openDeds=new Set();
+// Deduction cards: active ones start open and inactive ones folded; each remembers being opened or folded.
+const dedOpen=new Map(),openDeds={add:id=>dedOpen.set(id,true)};
 const DPRESETS=[
   ['Retirement (401K)',{mode:'pct',value:5,retirement:true,nonTaxable:true}],
   ['Health savings (HSA)',{mode:'paycheck',value:0,health:true,nonTaxable:true}],
@@ -2775,6 +2769,13 @@ const DPRESETS=[
   ['Income tax withheld',{mode:'paycheck',value:0,withheld:true}],
   ['Social Security',{mode:'pct',value:6.2,payrollTax:true}],
   ['Medicare',{mode:'pct',value:1.45,payrollTax:true}]];
+const ROUTES=['overview','month','year','plan','income','deductions','taxes','import','settings'];
+let lastExp='month';
+function route(){let r=(location.hash||'').replace('#','');if(r==='bills')r='plan';if(r==='expenses')r=lastExp;if(r==='month'||r==='year')lastExp=r;view.route=ROUTES.includes(r)?r:'overview';render();}
+window.addEventListener('hashchange',()=>{route();window.scrollTo(0,0);});
+route();
+
+// ===== Income → Deductions: everything taken out of paychecks, each with its own dates =====
 function dedRank(d){const t=today(),ok=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'');return ok(d.start)&&d.start>t?1:ok(d.end)&&d.end<t?2:0;}
 function dedStatus(d){const r=dedRank(d);return r===0?h('span',{class:'pill rec'},'Active'):r===1?h('span',{class:'pill auto'},'Starts '+fmtDate(d.start)):h('span',{class:'pill auto'},'Ended '+fmtDate(d.end));}
 function addDeduction(preset){
@@ -2796,14 +2797,15 @@ function dedHint(d){
 }
 function deductionCard(d,I){
   const inactive=dedRank(d)!==0;
-  const toggle=()=>{if(openDeds.has(d.id))openDeds.delete(d.id);else openDeds.add(d.id);render();};
+  const isOpen=dedOpen.has(d.id)?dedOpen.get(d.id):!inactive;
+  const toggle=()=>{dedOpen.set(d.id,!isOpen);render();};
   const kinds=DFLAGS.filter(([k])=>d[k]).map(([,l])=>l);
   const amtText=d.mode==='pct'?num(d.value,0)+'%':money(num(d.value,0))+(d.mode==='monthly'?' / month':' / paycheck');
-  if(inactive&&!openDeds.has(d.id))return h('div',{class:'card'},h('button',{type:'button',class:'pcfold','aria-expanded':'false',onclick:toggle},
+  if(!isOpen)return h('div',{class:'card'},h('button',{type:'button',class:'pcfold','aria-expanded':'false',onclick:toggle},
     h('span',{class:'arrow','aria-hidden':'true'},'›'),h('span',{class:'pcname'},d.name,h('small',{},kinds.join(' · ')||'Deduction')),dedStatus(d),h('span',{class:'num pcnet'},amtText)));
   const card=h('div',{class:'card stack dedcard'});
-  card.append(h('div',{class:'cathead',style:'grid-template-columns:'+(inactive?'auto ':'')+'minmax(0,1fr) auto auto;margin:0'},
-    inactive?h('button',{type:'button',class:'pcfold-btn','aria-label':'Collapse '+d.name,'aria-expanded':'true',onclick:toggle},h('span',{class:'arrow open','aria-hidden':'true'},'›')):null,
+  card.append(h('div',{class:'cathead',style:'grid-template-columns:auto minmax(0,1fr) auto auto;margin:0'},
+    h('button',{type:'button',class:'pcfold-btn','aria-label':'Collapse '+d.name,'aria-expanded':'true',onclick:toggle},h('span',{class:'arrow open','aria-hidden':'true'},'›')),
     txt('ddn-'+d.id,d.name,(v,el)=>{if(!v){el.value=d.name;return;}d.name=v;save();}),dedStatus(d),
     del('Delete '+d.name,()=>{I.payrollDeductions=I.payrollDeductions.filter(x=>x.id!==d.id);save();toast('Deleted “'+d.name+'”');})));
   card.querySelector('#ddn-'+CSS.escape(d.id)).classList.add('nameinp');
