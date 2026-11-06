@@ -299,6 +299,9 @@ button.pcfold{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;ga
 .efrow{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .efpct{text-align:right}
 .bonusbox{display:grid;gap:10px;padding-top:4px}
+.dedflags{display:flex;flex-wrap:wrap;gap:8px 18px}
+@media (max-width:520px){.dedcard>.two>.field:nth-child(-n+2){grid-column:1 / -1}}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
 .efins{display:flex;gap:12px;flex-wrap:wrap;flex:1 1 300px}.efins .field{flex:1 1 130px;max-width:200px}.efins input[type=date]{width:100%;min-width:0}
 .billsave{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding-left:34px}.billsave .meter{flex:1 1 120px;max-width:220px}.billsave input{width:110px}
 .efpct b{display:block;font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1.1}
@@ -628,14 +631,34 @@ function defaultCategories(){return [
   {id:'others',name:'Others',color:'#7A8582',bucket:'need'}
 ];}
 function defaultBrackets(){return [{over:0,base:0,rate:0},{over:9000,base:0,rate:7},{over:25000,base:1120,rate:14},{over:41500,base:3430,rate:25},{over:61500,base:8430,rate:33}];}
+// Everything taken out of a paycheck: payroll taxes, withholding, retirement, insurance and so on.
+// mode: 'pct' (% of each paycheck's gross), 'paycheck' (fixed per paycheck) or 'monthly' (fixed per month, split across that month's paychecks).
+const DMODES=[['pct','Percentage of gross'],['paycheck','Fixed amount per paycheck'],['monthly','Fixed amount monthly']];
+const DFLAGS=[['retirement','Retirement savings'],['health','Health savings'],['insurance','Insurance plan'],['withheld','Income tax withheld'],['nonTaxable','Non-taxable']];
+function newDeduction(o){return Object.assign({id:uid(),name:'New deduction',mode:'paycheck',value:0,start:'',end:'',retirement:false,health:false,insurance:false,withheld:false,nonTaxable:false},o||{});}
+function defaultDeductions(withheld,region){return [newDeduction({name:'Medicare',mode:'pct',value:1.45,payrollTax:true}),newDeduction({name:'Social Security',mode:'pct',value:6.2,payrollTax:true}),
+  newDeduction({name:region==='other'?'Income tax withheld':'PR income tax withheld',mode:'paycheck',value:num(withheld,0),withheld:true})];}
+// Older data kept payroll taxes in one list and other deductions on each paycheck. Combine them into one dated list.
+function migrateDeductions(inc){
+  if(Array.isArray(inc.payrollDeductions))return inc;
+  const list=[],D=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'');
+  (inc.taxes||[]).forEach(t=>list.push(newDeduction({id:t.id||uid(),name:t.name||'Tax',mode:t.mode==='pct'?'pct':'paycheck',value:num(t.value,0),withheld:!!t.incomeTax,payrollTax:!t.incomeTax})));
+  const touch=(a,b)=>{const aS=D(a.start)?a.start:'0000-01-01',aE=D(a.end)?addDays(a.end,1):'9999-12-31',bS=D(b.start)?b.start:'0000-01-01',bE=D(b.end)?addDays(b.end,1):'9999-12-31';return aS<=bE&&bS<=aE;};
+  (inc.paychecks||[]).filter(p=>!p.bonus).forEach(p=>(p.deductions||[]).forEach(x=>{
+    const nd=newDeduction({id:x.id||uid(),name:x.name||'Deduction',mode:'paycheck',value:num(x.amount,0),start:p.start||'',end:p.end||'',retirement:!!x.retirement,nonTaxable:!!x.retirement});
+    const same=list.find(y=>y.mode==='paycheck'&&y.name===nd.name&&y.value===nd.value&&y.retirement===nd.retirement&&!y.withheld&&touch(y,nd));
+    if(same){same.start=!D(same.start)||!D(nd.start)?'':(same.start<nd.start?same.start:nd.start);same.end=!D(same.end)||!D(nd.end)?'':(same.end>nd.end?same.end:nd.end);}
+    else list.push(nd);}));
+  inc.payrollDeductions=list;inc.taxes=[];(inc.paychecks||[]).forEach(p=>{p.deductions=[];});
+  return inc;
+}
 function defaultTaxes(){return [{id:uid(),name:'Medicare',mode:'pct',value:1.45,bonus:true,incomeTax:false},
   {id:uid(),name:'Social Security',mode:'pct',value:6.2,bonus:true,incomeTax:false},
   {id:uid(),name:'PR income tax withheld',mode:'fixed',value:1485,bonus:false,incomeTax:true}];}
 function defaults(){
   return {v:2,
-    income:{paychecks:[{id:'pc1',name:'Main job',period:'monthly',gross:10000,start:new Date().getFullYear()+'-01-01',end:'',
-        deductions:[{id:'d1',name:'Retirement / other',amount:1250,retirement:true}]}],
-      taxes:defaultTaxes(),bonuses:[],taxDeductions:[],nonTaxable:0,applyReduction:true,brackets:defaultBrackets()},
+    income:{paychecks:[{id:'pc1',name:'Main job',period:'monthly',gross:10000,start:new Date().getFullYear()+'-01-01',end:'',deductions:[]}],
+      taxes:[],payrollDeductions:defaultDeductions(1485).concat([newDeduction({id:'d1',name:'Retirement (401K)',mode:'paycheck',value:1250,retirement:true,nonTaxable:true})]),bonuses:[],taxDeductions:[],nonTaxable:0,applyReduction:true,brackets:defaultBrackets()},
     categories:defaultCategories(),
     plan:[{id:'p1',categoryId:'groceries',name:'Groceries',amount:650,include:true,auto:null},
           {id:'p2',categoryId:'utilities',name:'Electricity & water',amount:500,include:true,auto:null},
@@ -643,7 +666,7 @@ function defaults(){
     bills:[],rules:[],goals:[],prefs:{upcomingDays:7,efMonths:6,efSaved:0}};
 }
 // A new account starts empty and opens the setup walkthrough.
-function starterConfig(){const c=defaults();c.income.paychecks=[];c.plan=[];Object.assign(c.prefs,{setup:'pending',ovMore:false,view:'simple',tips:{}});return c;}
+function starterConfig(){const c=defaults();c.income.paychecks=[];c.income.payrollDeductions=[];c.plan=[];Object.assign(c.prefs,{setup:'pending',ovMore:false,view:'simple',tips:{}});return c;}
 function num(v,d){const n=+v;return isFinite(n)?n:d;}
 function normalize(d){
   const D=defaults();const src=d.income||{};
@@ -675,6 +698,9 @@ function normalize(d){
     const mx=Math.max(0,...inc.paychecks.flatMap(p=>p.deductions.map(d=>d.retirement?num(d.max,0):0)));
     if(mx>0)inc.retireMax[String(new Date().getFullYear())]=mx;}
   inc.paychecks.forEach(p=>p.deductions.forEach(d=>{delete d.max;}));
+  if(!Array.isArray(src.payrollDeductions))delete inc.payrollDeductions;
+  migrateDeductions(inc);
+  inc.payrollDeductions=inc.payrollDeductions.map(d=>newDeduction({...d,value:num(d.value,0),mode:['pct','paycheck','monthly'].includes(d.mode)?d.mode:'paycheck'}));
   ['period','gross','deductions','stdBase','stdPerDep','dependents','reductionPct','bonusIncomeTaxWithheld'].forEach(k=>delete inc[k]);
   return {v:2,income:inc,
     categories:Array.isArray(d.categories)&&d.categories.length?d.categories.map(c=>({id:c.id,name:c.name||'Untitled',color:c.color||'#7A8582',bucket:BUCKETS[c.bucket]?c.bucket:'need'})):D.categories,
@@ -717,17 +743,28 @@ function activeFrac(pc,month){
   if(from>to)return 0;
   return (+to.slice(8)-(+from.slice(8))+1)/n;
 }
-// A bonus paycheck only has the taxes marked "Applies to bonuses", plus the income tax withheld on that bonus.
-function payCalc(pc,taxes){
+const dedOn=(d,date)=>(!YMD.test(d.start||'')||d.start<=date)&&(!YMD.test(d.end||'')||d.end>=date);
+// Payroll taxes (Medicare, Social Security) and withholding are grouped as taxes; everything else as deductions.
+const dedTaxLike=d=>!!d.withheld||!!d.payrollTax||(!(d.retirement||d.health||d.insurance||d.nonTaxable)&&/medicare|social security|seguro social|fica/i.test(d.name||''));
+// What comes out of one paycheck paid on a date. Monthly amounts are added once a month, not here.
+// A bonus only has percentage deductions (like Medicare and Social Security), plus the income tax withheld on it.
+function payItemsAt(pc,deds,date){
+  const g=num(pc.gross,0),out=[];
+  (deds||[]).forEach(d=>{if(!dedOn(d,date)||d.mode==='monthly'||(pc.bonus&&d.mode!=='pct'))return;
+    const per=d.mode==='pct'?g*num(d.value,0)/100:num(d.value,0);if(per)out.push({...d,per});});
+  if(pc.bonus&&num(pc.withheld,0)>0){const it=(deds||[]).find(d=>d.withheld);out.push({id:'bw-'+pc.id,name:it?it.name:'Income tax withheld',withheld:true,per:num(pc.withheld,0)});}
+  return out;
+}
+// One paycheck as it stands today (or on its start date): monthly amounts shown as an even share per paycheck.
+function payCalc(pc,deds){
   const ppm=(PERIODS[pc.period]||PERIODS.monthly).ppm,pGross=num(pc.gross,0);
-  const ded=(pc.deductions||[]).map(x=>({...x,per:num(x.amount,0),m:num(x.amount,0)*ppm}));
-  const tx=(taxes||[]).filter(t=>!pc.bonus||t.bonus);
-  const tax=tx.map(x=>{const per=x.mode==='pct'?pGross*num(x.value,0)/100:num(x.value,0);return {...x,per,m:per*ppm};});
-  if(pc.bonus&&num(pc.withheld,0)>0){const it=(taxes||[]).find(t=>t.incomeTax);const per=num(pc.withheld,0);
-    tax.push({id:'bw-'+pc.id,name:it?it.name:'Income tax withheld',mode:'fixed',value:per,incomeTax:true,per,m:per*ppm});}
+  const n=new Date();let at=n.getFullYear()+'-'+pad2(n.getMonth()+1)+'-'+pad2(n.getDate());if(YMD.test(pc.start||'')&&pc.start>at)at=pc.start;if(YMD.test(pc.end||'')&&pc.end<at)at=pc.end;
+  const items=payItemsAt(pc,deds,at);
+  if(!pc.bonus&&ppm>0)(deds||[]).forEach(d=>{if(d.mode==='monthly'&&dedOn(d,at)&&num(d.value,0))items.push({...d,per:num(d.value,0)/ppm});});
+  const ded=items.filter(x=>!dedTaxLike(x)).map(x=>({...x,m:x.per*ppm})),tax=items.filter(dedTaxLike).map(x=>({...x,m:x.per*ppm}));
   const pDed=ded.reduce((s,x)=>s+x.per,0),pTax=tax.reduce((s,x)=>s+x.per,0),pNet=pGross-pDed-pTax;
   return {ppm,pGross,ded,tax,pDed,pTax,pNet,mGross:pGross*ppm,mDed:pDed*ppm,mTax:pTax*ppm,mNet:pNet*ppm,
-    mRetire:ded.filter(x=>x.retirement).reduce((s,x)=>s+x.m,0),mWithheld:tax.filter(t=>t.incomeTax).reduce((s,t)=>s+t.m,0)};
+    mRetire:ded.filter(x=>x.retirement).reduce((s,x)=>s+x.m,0),mWithheld:tax.filter(t=>t.withheld).reduce((s,t)=>s+t.m,0)};
 }
 const capKey=n=>String(n||'').trim().toLowerCase();
 // One combined yearly max for all retirement deductions. A year without its own value uses the latest earlier year's.
@@ -742,25 +779,35 @@ function yearSchedule(cfg,year){
   year=String(year);
   const cap=capFor(cfg,year),ys=year+'-01-01',ye=year+'-12-31';let used=0,reached=0;
   const part=()=>({gross:0,ded:{},tax:{},dedTotal:0,taxTotal:0,net:0});
-  const months=Array.from({length:12},()=>({gross:0,ded:{},tax:{},dedTotal:0,taxTotal:0,net:0,retire:0,withheld:0,active:0,byPc:{},k:{pay:part(),bonus:part()}}));
-  const ev=[],P={};
+  const months=Array.from({length:12},()=>({gross:0,ded:{},tax:{},dedTotal:0,taxTotal:0,net:0,retire:0,withheld:0,nonTax:0,active:0,byPc:{},regs:[],k:{pay:part(),bonus:part()}}));
+  const ev=[];
   cfg.income.paychecks.forEach(pc=>{
     const first=YMD.test(pc.start||'')?pc.start:ys,to=YMD.test(pc.end||'')&&pc.end<ye?pc.end:ye;
     if(pc.period==='once'&&!YMD.test(pc.start||''))return;
     payDates(pc.period,first,to).forEach(d=>{if(d>=ys)ev.push({d,pc});});
   });
   ev.sort((a,b)=>a.d.localeCompare(b.d)||String(a.pc.start||'').localeCompare(String(b.pc.start||'')));
+  const deds=cfg.income.payrollDeductions||[];
+  const take=(x,a,m)=>{if(x.retirement&&cap>0){const left=Math.max(0,cap-used);if(a>=left-1e-9){a=left;if(!reached)reached=m;}used+=a;}else if(x.retirement)used+=a;return a;};
+  const book=(o,K,B,x,a)=>{const nm=x.name||'Deduction',T=dedTaxLike(x);
+    if(T){o.tax[nm]=(o.tax[nm]||0)+a;o.taxTotal+=a;K.tax[nm]=(K.tax[nm]||0)+a;K.taxTotal+=a;if(B)B.tax+=a;}
+    else{o.ded[nm]=(o.ded[nm]||0)+a;o.dedTotal+=a;K.ded[nm]=(K.ded[nm]||0)+a;K.dedTotal+=a;if(B)B.ded+=a;}
+    if(x.retirement)o.retire+=a;if(x.withheld)o.withheld+=a;if(x.nonTaxable)o.nonTax+=a;};
+  // Monthly deductions: once per month, split across that month's regular paydays.
+  const flush=mi=>{if(mi<0)return;const o=months[mi],regs=o.regs;if(!regs.length)return;
+    deds.forEach(d=>{if(d.mode!=='monthly'||!num(d.value,0))return;const act=regs.filter(e=>dedOn(d,e.d));if(!act.length)return;
+      const a=take(d,num(d.value,0),mi+1);book(o,o.k.pay,null,d,a);act.forEach(e=>{const B=o.byPc[e.pc.id];const sh=a/act.length;if(dedTaxLike(d))B.tax+=sh;else B.ded+=sh;});});};
+  let cur=-1;
   ev.forEach(({d,pc})=>{
-    const p=P[pc.id]=P[pc.id]||payCalc(pc,cfg.income.taxes),m=+d.slice(5,7),o=months[m-1];
+    const m=+d.slice(5,7),o=months[m-1];
+    if(m-1!==cur){flush(cur);cur=m-1;}
     let B=o.byPc[pc.id];if(!B){B=o.byPc[pc.id]={gross:0,ded:0,tax:0,count:0};o.active++;}
-    const K=o.k[pc.bonus?'bonus':'pay'];
-    B.count++;B.gross+=p.pGross;o.gross+=p.pGross;K.gross+=p.pGross;
-    p.ded.forEach(x=>{let a=x.per;
-      if(x.retirement&&cap>0){const left=Math.max(0,cap-used);if(a>=left-1e-9){a=left;if(!reached)reached=m;}used+=a;}
-      else if(x.retirement)used+=a;
-      const nm=x.name||'Deduction';o.ded[nm]=(o.ded[nm]||0)+a;o.dedTotal+=a;B.ded+=a;if(x.retirement)o.retire+=a;K.ded[nm]=(K.ded[nm]||0)+a;K.dedTotal+=a;});
-    p.tax.forEach(x=>{const a=x.per,nm=x.name||'Tax';o.tax[nm]=(o.tax[nm]||0)+a;o.taxTotal+=a;B.tax+=a;if(x.incomeTax)o.withheld+=a;K.tax[nm]=(K.tax[nm]||0)+a;K.taxTotal+=a;});
+    const K=o.k[pc.bonus?'bonus':'pay'],g=num(pc.gross,0);
+    B.count++;B.gross+=g;o.gross+=g;K.gross+=g;
+    if(!pc.bonus)o.regs.push({d,pc});
+    payItemsAt(pc,deds,d).forEach(x=>book(o,K,B,x,take(x,x.per,m)));
   });
+  flush(cur);
   months.forEach(o=>{o.net=o.gross-o.dedTotal-o.taxTotal;for(const k in o.k){const q=o.k[k];q.net=q.gross-q.dedTotal-q.taxTotal;}});
   return {months,cap,used,reached};
 }
@@ -831,8 +878,8 @@ function paycheckInYear(pc,year){
   return (!hasS||pc.start<=ye)&&(!hasE||pc.end>=ys);
 }
 function yearIncome(cfg,year){
-  const o={gross:0,ded:0,tax:0,net:0,retire:0,withheld:0};
-  yearSchedule(cfg,String(year)).months.forEach(x=>{o.gross+=x.gross;o.ded+=x.dedTotal;o.tax+=x.taxTotal;o.net+=x.net;o.retire+=x.retire;o.withheld+=x.withheld;});
+  const o={gross:0,ded:0,tax:0,net:0,retire:0,withheld:0,nonTax:0};
+  yearSchedule(cfg,String(year)).months.forEach(x=>{o.gross+=x.gross;o.ded+=x.dedTotal;o.tax+=x.taxTotal;o.net+=x.net;o.retire+=x.retire;o.withheld+=x.withheld;o.nonTax+=x.nonTax;});
   return o;
 }
 function paycheckOn(cfg,date){
@@ -852,13 +899,13 @@ function taxFor(cfg,year){
   const I=cfg.income,Y=yearIncome(cfg,year);
   const Bn=incomeBreakdown(cfg,Array.from({length:12},(_,i)=>year+'-'+pad2(i+1)),'bonus');
   const bonusTotal=Bn.gross,bonusTax=Bn.taxTotal+Bn.dedTotal;
-  const yGross=Y.gross,stdDed=EXEMPTION,retireYear=Y.retire;
+  const yGross=Y.gross,stdDed=EXEMPTION,retireYear=Y.retire,nonTaxYear=Y.nonTax;
   const dedItems=(I.taxDeductions||[]).map(d=>({id:d.id,name:d.name,...taxDeductionYear(d,year)})).filter(x=>x.total>0);
   const otherDed=dedItems.reduce((s,x)=>s+x.total,0);
-  const taxable=Math.max(0,yGross-retireYear-otherDed-stdDed);
+  const taxable=Math.max(0,yGross-nonTaxYear-otherDed-stdDed);
   const taxDue=bracketTax(taxable,I.brackets)*(I.applyReduction!==false?1-REDUCTION/100:1);
   const withheld=Y.withheld;
-  return {year:+year,payGross:Y.gross-bonusTotal,payNet:Y.net-Bn.net,bonusTotal,bonusTax,bonusNet:bonusTotal-bonusTax,yGross,stdDed,retireYear,otherDed,dedItems,taxable,taxDue,withheld,outOfPocket:taxDue-withheld};
+  return {year:+year,payGross:Y.gross-bonusTotal,payNet:Y.net-Bn.net,bonusTotal,bonusTax,bonusNet:bonusTotal-bonusTax,yGross,stdDed,retireYear,nonTaxYear,otherDed,dedItems,taxable,taxDue,withheld,outOfPocket:taxDue-withheld};
 }
 function calc(cfg,month,taxYear){
   month=month||curMonth();
@@ -873,7 +920,7 @@ function calc(cfg,month,taxYear){
   cfg.categories.forEach(c=>{buckets[c.bucket in buckets?c.bucket:'need']+=catPlanned[c.id]||0;});
   return {month,mGross:M.gross,mDed:M.ded,mTax:M.tax,mNet:M.net,retirement:M.retire,activeCount:M.active,T,T0,
     irregularMonthly,lineValue,catPlanned,plannedTotal,remaining:M.net-plannedTotal,buckets,emergency:buckets.need*6,
-    yearIncome:y=>yearIncome(cfg,y),payCalc:pc=>payCalc(pc,cfg.income.taxes),activeFrac};
+    yearIncome:y=>yearIncome(cfg,y),payCalc:pc=>payCalc(pc,cfg.income.payrollDeductions),activeFrac};
 }
 // Bills due: due date month repeats every N months.
 function monthDiff(a,b){const [ay,am]=a.split('-').map(Number),[by,bm]=b.split('-').map(Number);return (by-ay)*12+(bm-am);}
@@ -1128,14 +1175,14 @@ function buildImportRows(t,opts){
   return out;
 }
 
-return {lineDates,parseCSV,detectTable,buildImportRows,merchantKey,suggestCategory,csvDate,csvMoney,BUCKET_COLORS,FREQS,FREQ,freqOf,everyToFreq,PERIODS,BUCKETS,REDUCTION,EXEMPTION,PALETTE,r2,uid,defaults,defaultTaxes,incomeBreakdown,yearSchedule,capFor,paycheckTotals,paycheckInYear,taxFor,taxDeductionYear,monthIncome,activeFrac,defaultCategories,defaultBrackets,normalize,migrate,calc,bracketTax,billDueIn,monthDiff,parseWorkbook,payDates,clampYMD,lineDay,semiDays,starterConfig,defaultCategories};
+return {lineDates,parseCSV,detectTable,buildImportRows,merchantKey,suggestCategory,csvDate,csvMoney,BUCKET_COLORS,FREQS,FREQ,freqOf,everyToFreq,PERIODS,BUCKETS,REDUCTION,EXEMPTION,PALETTE,r2,uid,defaults,defaultTaxes,incomeBreakdown,yearSchedule,capFor,paycheckTotals,paycheckInYear,taxFor,taxDeductionYear,monthIncome,activeFrac,defaultCategories,defaultBrackets,normalize,migrate,calc,bracketTax,billDueIn,monthDiff,parseWorkbook,payDates,clampYMD,lineDay,semiDays,starterConfig,defaultCategories,DMODES,DFLAGS,newDeduction,defaultDeductions,migrateDeductions,dedTaxLike,dedOn,payItemsAt,num};
 })();
 if(typeof module!=='undefined')module.exports=CH;
 </script>
 
 <script>
 (function(){
-const {lineDates,parseCSV,detectTable,buildImportRows,merchantKey,suggestCategory,BUCKET_COLORS,FREQS,FREQ,freqOf,everyToFreq,PERIODS,BUCKETS,REDUCTION,EXEMPTION,PALETTE,r2,uid,defaults,defaultTaxes,incomeBreakdown,yearSchedule,capFor,paycheckTotals,paycheckInYear,taxFor,taxDeductionYear,normalize,migrate,calc,billDueIn,monthDiff,parseWorkbook,payDates,clampYMD,lineDay,semiDays,starterConfig,defaultCategories}=CH;
+const {lineDates,parseCSV,detectTable,buildImportRows,merchantKey,suggestCategory,BUCKET_COLORS,FREQS,FREQ,freqOf,everyToFreq,PERIODS,BUCKETS,REDUCTION,EXEMPTION,PALETTE,r2,uid,defaults,defaultTaxes,incomeBreakdown,yearSchedule,capFor,paycheckTotals,paycheckInYear,taxFor,taxDeductionYear,normalize,migrate,calc,billDueIn,monthDiff,parseWorkbook,payDates,clampYMD,lineDay,semiDays,starterConfig,defaultCategories,DMODES,DFLAGS,newDeduction,defaultDeductions,migrateDeductions,dedTaxLike,dedOn,payItemsAt,num}=CH;
 const LS='chavos-v1';
 const $=s=>document.querySelector(s);
 const fmt=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
@@ -1379,12 +1426,12 @@ function render(){
   const a=document.activeElement,fid=a&&a.id&&$('#app').contains(a)?a.id:null;
   const fval=fid&&a.tagName==='INPUT'&&a.type==='text'?a.value:null;let fsel=null;try{fsel=fid&&a.selectionStart!=null?[a.selectionStart,a.selectionEnd]:null;}catch(e){}
   const y=window.scrollY;
-  ['overview','expenses','plan','income','settings'].forEach(r=>{const t=$('#tab-'+r);if(r===view.route||(r==='expenses'&&['month','year','import'].includes(view.route))||(r==='income'&&view.route==='taxes'))t.setAttribute('aria-current','page');else t.removeAttribute('aria-current');});
+  ['overview','expenses','plan','income','settings'].forEach(r=>{const t=$('#tab-'+r);if(r===view.route||(r==='expenses'&&['month','year','import'].includes(view.route))||(r==='income'&&(view.route==='taxes'||view.route==='deductions')))t.setAttribute('aria-current','page');else t.removeAttribute('aria-current');});
   const inEdit=view.route==='plan'&&!!view.planEdit;
-  $('#fab').hidden=inEdit||!['overview','month','year','plan','income','taxes'].includes(view.route);
+  $('#fab').hidden=inEdit||!['overview','month','year','plan','income','deductions','taxes'].includes(view.route);
   $('#donefab').hidden=!inEdit;
   $('#editfab').hidden=!(view.route==='plan'&&!inEdit);
-  const app=$('#app');app.replaceChildren(({import:vBankImport,overview:vOverview,month:vMonth,year:vYear,plan:vPlan,income:vIncome,taxes:vTaxes,settings:vSettings})[view.route]());
+  const app=$('#app');app.replaceChildren(({import:vBankImport,overview:vOverview,month:vMonth,year:vYear,plan:vPlan,income:vIncome,deductions:vDeductions,taxes:vTaxes,settings:vSettings})[view.route]());
   if(fid){const el=document.getElementById(fid);if(el){if(fval!=null)el.value=fval;el.focus({preventScroll:true});if(fsel)try{el.setSelectionRange(fsel[0],fsel[1]);}catch(e){}}}
   window.scrollTo(0,y);
   showActiveTab();
@@ -1840,7 +1887,7 @@ async function runImport(){
       taxes:I.taxes.map(x=>({id:uid(),...x})),
       paychecks:I.paychecks.map(p=>({...p,id:'pc'+uid().replace(/-/g,'').slice(0,10),start,end:'',deductions:p.deductions.map(x=>({id:uid(),...x}))}))
         .concat(I.bonuses.map(x=>({id:'pc'+uid().replace(/-/g,'').slice(0,10),name:x.name||'Bonus',period:'once',gross:x.amount,start:x.date||((d.years[0]||new Date().getFullYear())+'-12-31'),end:'',deductions:[],bonus:true,withheld:x.withheld||0}))),
-      bonuses:[]});}
+      bonuses:[]});delete cfg.income.payrollDeductions;migrateDeductions(cfg.income);}
   store.saveSettings();
   let failed=0,count=0;
   if(o.expenses){
@@ -2128,10 +2175,10 @@ function goalDialog(g){
 function retireBucket(){
   const cm=today().slice(0,7),y=cm.slice(0,4),m=+cm.slice(5,7),sc=yearSchedule(S.cfg,y);
   const ytd=sc.months.slice(0,m).reduce((a,x)=>a+x.retire,0),thisM=sc.months[m-1].retire;
-  const any=S.cfg.income.paychecks.some(pc=>(pc.deductions||[]).some(d=>d.retirement&&+d.amount>0));
+  const any=(S.cfg.income.payrollDeductions||[]).some(d=>d.retirement&&+d.value>0);
   let sub=!any?'none set up':money0(ytd)+' this year';
   if(any&&sc.cap>0&&sc.reached&&sc.reached<=m)sub='max hit in '+MSHORT[sc.reached-1];
-  return h('div',{class:'bucket',title:any?'From paychecks: '+money(ytd)+' so far in '+y+(sc.cap>0?' of a '+money(sc.cap)+' yearly max':''):'Mark a paycheck deduction as retirement savings on the Income tab.'},
+  return h('div',{class:'bucket',title:any?'From paychecks: '+money(ytd)+' so far in '+y+(sc.cap>0?' of a '+money(sc.cap)+' yearly max':''):'Mark a deduction as retirement savings in Income → Deductions.'},
     h('span',{class:'eyebrow'},'Retirement'),h('b',{class:'num'},money(thisM)),h('small',{class:'num'},sub));
 }
 function bucketBox(label,v,sub){return h('div',{class:'bucket'},h('span',{class:'eyebrow'},label),h('b',{class:'num'+(v<0?' neg':'')},money(v)),h('small',{class:'num'},sub||money(v*12)+' / yr'));}
@@ -2329,21 +2376,12 @@ function paycheckCard(pc,I){
     h('div',{class:'field'},h('label',{for:'pce-'+pc.id},'End date (optional)'),dateInp('pce-'+pc.id,pc.end,v=>{if(v&&pc.start&&v<pc.start){toast('End date must be after the start date.');render();return;}pc.end=v;openPcs.add(pc.id);save();},'End date'),
       pc.end?h('button',{type:'button',class:'linkbtn',style:'justify-self:start;padding:0;font-size:13px;line-height:18px',onclick:()=>{pc.end='';save();}},'Clear end date'):h('span',{class:'hint'},'Leave empty if it’s ongoing.')),
       ));
-  const bonusTaxes=I.taxes.filter(t=>t.bonus).map(t=>t.name);
   card.append(h('div',{class:'bonusbox'},
     h('label',{class:'check'},chk('pcb-'+pc.id,!!pc.bonus,v=>{pc.bonus=v;if(v&&!pc.withheld)pc.withheld=0;save();},'This paycheck is a bonus'),
-      h('span',{},'This is a bonus',h('br'),h('span',{class:'hint'},pc.bonus?'Only '+(bonusTaxes.length?bonusTaxes.join(' and '):'taxes marked “Applies to bonuses”')+' come out, plus any income tax withheld below.':'Bonuses are listed separately and only have taxes marked “Applies to bonuses” in Taxes.'))),
+      h('span',{},'This is a bonus',h('br'),h('span',{class:'hint'},pc.bonus?'Only percentage deductions (like Social Security and Medicare) come out, plus any income tax withheld below.':'Bonuses are listed separately. Only percentage deductions come out of them.'))),
     pc.bonus?h('div',{class:'field',style:'max-width:260px'},h('label',{for:'pcw-'+pc.id},'Income tax withheld'+(once?'':' per payment')),amt('pcw-'+pc.id,pc.withheld||'',n=>{pc.withheld=r2(n);save();},{label:'Income tax withheld on this bonus'}),
       h('span',{class:'hint'},'From the pay stub. Leave empty if none.')):null));
-  // deductions
-  const drows=h('div',{class:'rows dedrows'});
-  if(P.ded.length)drows.append(h('div',{class:'colhead'},h('span',{},'Name'),h('span',{class:'r'},'Per paycheck'),h('span',{})));
-  P.ded.forEach((x,i)=>{const d=pc.deductions[i];
-    drows.append(h('div',{class:'erow'},txt('dn-'+d.id,d.name,(v,el)=>{if(!v){el.value=d.name;return;}d.name=v;save();}),amt('da-'+d.id,d.amount,n=>{d.amount=r2(n);save();},{label:'Amount for '+d.name}),del('Delete '+d.name,()=>{pc.deductions=pc.deductions.filter(y=>y.id!==d.id);save();}),
-      h('div',{class:'sub2'},h('label',{class:'tag'},chk('dr-'+d.id,d.retirement,v=>{d.retirement=v;save();},'Retirement savings, not taxed'),'Retirement savings (not taxed)'),
-        h('span',{class:'hint num'},(P.pGross>0?(x.per/P.pGross*100).toFixed(1):'0')+'% of gross · '+(once?money(x.per)+' once':money(x.m)+' / month')))));});
-  if(!isSimple()||pc.deductions.length)card.append(h('div',{},h('h4',{class:'eyebrow',style:'margin:4px 0 8px'},'Deductions per paycheck'),drows,
-    h('div',{class:'addrow'},h('button',{class:'btn sm',type:'button',onclick:()=>{pc.deductions.push({id:uid(),name:'New deduction',amount:0,retirement:false});save();}},'Add deduction'))));
+  card.append(h('p',{class:'hint',style:'margin:0'},'Taxes, retirement and other deductions are in ',h('a',{href:'#deductions',style:'color:var(--accent);font-weight:600'},'Deductions'),' and apply to every paycheck in their dates.'));
   const R=paycheckTotals(S.cfg,pc,view.incomeYear);
   const sameY=R.from.slice(0,4)===R.to.slice(0,4);
   const rangeLabel=once?fmtDate(R.from):(true?fmtDate(R.from).replace(/, \d{4}$/,''):fmtDate(R.from))+' – '+fmtDate(R.to);
@@ -2369,34 +2407,34 @@ function taxLineLink(T,cy){
   return h('p',{class:'hint',style:'margin:0'},'Your '+lines[0].name+' line covers it.');
 }
 // This year's pace toward the max, and the per-paycheck amount that lands on it by December.
-// A change takes effect from the next payday: a paycheck that already paid is split into a new line from then.
+// A change takes effect from the next payday: the deduction ends the day before, and a new one starts then.
 function retirePace(I,y,sc){
-  const t=today(),ys=y+'-01-01',ye=y+'-12-31',YMD=/^\d{4}-\d{2}-\d{2}$/;
+  const t=today(),ys=y+'-01-01',ye=y+'-12-31',YMD=/^\d{4}-\d{2}-\d{2}$/,deds=I.payrollDeductions||[];
   const ev=[];
-  I.paychecks.forEach(pc=>{if(pc.period==='once'&&!YMD.test(pc.start||''))return;
+  I.paychecks.forEach(pc=>{if(pc.bonus||(pc.period==='once'&&!YMD.test(pc.start||'')))return;
     const first=YMD.test(pc.start||'')?pc.start:ys,to=YMD.test(pc.end||'')&&pc.end<ye?pc.end:ye;
     payDates(pc.period,first,to).forEach(d=>{if(d>=ys)ev.push({d,pc});});});
-  const ret=pc=>(pc.deductions||[]).filter(x=>x.retirement&&+x.amount>0);
-  const soFar=Math.min(sc.cap,ev.filter(e=>e.d<t).reduce((a,e)=>a+ret(e.pc).reduce((b,x)=>b+(+x.amount),0),0));
-  const fut=ev.filter(e=>e.d>=t),cnt={};fut.forEach(e=>{if(e.pc.period!=='once'&&ret(e.pc).length)cnt[e.pc.id]=(cnt[e.pc.id]||0)+1;});
-  const pid=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+  ev.sort((a,b)=>a.d.localeCompare(b.d));
+  const retAt=(e,skip)=>payItemsAt(e.pc,deds,e.d).filter(x=>x.retirement&&x.id!==skip).reduce((a,x)=>a+x.per,0);
+  const soFar=Math.min(sc.cap,sc.months.slice(0,+t.slice(5,7)-1).reduce((a,m)=>a+m.retire,0)+ev.filter(e=>e.d<t&&e.d.slice(0,7)===t.slice(0,7)).reduce((a,e)=>a+retAt(e),0));
+  const fut=ev.filter(e=>e.d>=t);
   const status=h('p',{class:'hint num',style:'margin:6px 0 0'},sc.reached?'Max reached in '+MONTHS[sc.reached-1]+' with '+money(soFar)+' in so far; deductions stop after that.'
     :'On pace to put in '+money(sc.used)+' of '+money(sc.cap)+' this year ('+money(soFar)+' so far).');
-  if(!pid)return status;
-  const pc=I.paychecks.find(x=>x.id===pid),d=ret(pc)[0],R=cnt[pid];
-  const others=fut.reduce((a,e)=>a+ret(e.pc).filter(x=>x!==d).reduce((b,x)=>b+(+x.amount),0),0);
+  // Suggest a new amount for the fixed-per-paycheck retirement deduction used on the most upcoming paydays.
+  const cands=deds.filter(d=>d.retirement&&d.mode==='paycheck').map(d=>({d,n:fut.filter(e=>dedOn(d,e.d)).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+  if(!cands.length||!fut.length)return status;
+  const d=cands[0].d,R=cands[0].n,others=fut.reduce((a,e)=>a+retAt(e,d.id),0)
+    +deds.filter(x=>x.retirement&&x.mode==='monthly').reduce((a,x)=>a+num(x.value,0)*(12-(+t.slice(5,7))+1),0);
   const per=Math.max(0,Math.ceil((sc.cap-soFar-others)/R*100)/100);
-  if(Math.abs(per-(+d.amount))<1)return status;
-  const nd=fut.find(e=>e.pc===pc).d;
+  if(Math.abs(per-num(d.value,0))<1)return status;
+  const nd=fut.find(e=>dedOn(d,e.d)).d;
   const btn=h('button',{type:'button',class:'linkbtn',style:'padding:0;font-size:13px;text-align:left;margin-top:4px',onclick:()=>{
-    const old=+d.amount;
-    if(!YMD.test(pc.start||'')||pc.start<nd){
-      const np=JSON.parse(JSON.stringify(pc));np.id=uid();np.start=nd;
-      np.deductions=np.deductions.map((x,i)=>({...x,id:uid(),amount:pc.deductions[i]===d?per:x.amount}));
-      pc.end=addDaysStr(nd,-1);I.paychecks.push(np);
+    const old=num(d.value,0);
+    if(!YMD.test(d.start||'')||d.start<nd){
+      const nx={...d,id:uid(),start:nd,value:per};d.end=addDaysStr(nd,-1);I.payrollDeductions.push(nx);
       save();toast((d.name||'Retirement')+' goes from '+money(old)+' to '+money(per)+' starting '+fmtDate(nd)+'. Earlier paychecks stay as they were.');
-    }else{d.amount=per;save();toast((d.name||'Retirement')+' changed from '+money(old)+' to '+money(per)+' per paycheck');}}},
-    'Change '+(d.name||'retirement')+' to '+money(per)+' per paycheck '+(per<+d.amount?'to spread it through December':'to max out by December')+' →');
+    }else{d.value=per;save();toast((d.name||'Retirement')+' changed from '+money(old)+' to '+money(per)+' per paycheck');}}},
+    'Change '+(d.name||'retirement')+' to '+money(per)+' per paycheck '+(per<num(d.value,0)?'to spread it through December':'to max out by December')+' →');
   return h('div',{},status,btn);
 }
 function retireBox(I){
@@ -2535,7 +2573,7 @@ function vIncome(){
   if(!shown.length)left.append(h('div',{class:'card empty'},h('b',{},'No paychecks in '+Y),I.paychecks.length?'Your other paychecks are outside this year. Use the arrows to switch years, or add one below.':'Add your first paycheck below to see your take-home pay and taxes. Not sure of the details? Start with the amount on your last pay stub.'));
   const hidden=I.paychecks.length-shown.length;
   left.append(h('div',{class:'card'},h('h3',{},'Add a paycheck'),
-    h('p',{class:'hint',style:'margin:0 0 10px'},'The new paycheck copies the deductions of the most recent one and starts '+(isCur?'today':'on Jan 1, '+Y)+'. For a raise, also set an end date on the old paycheck.'+(hidden?' '+hidden+' paycheck'+(hidden>1?'s are':' is')+' outside '+Y+' and hidden.':'')),
+    h('p',{class:'hint',style:'margin:0 0 10px'},'The new paycheck copies the most recent one and starts '+(isCur?'today':'on Jan 1, '+Y)+'. For a raise, also set an end date on the old paycheck.'+(hidden?' '+hidden+' paycheck'+(hidden>1?'s are':' is')+' outside '+Y+' and hidden.':'')),
     h('button',{class:'btn primary',type:'button',onclick:()=>addPaycheck(Y)},'Add paycheck')));
   // overall gross to net
   const right=h('div',{class:'stack'});
@@ -2568,26 +2606,6 @@ function deductionInYear(d,year){
   if(d.period==='once')return !ok(d.start)||d.start.slice(0,4)===String(year);
   return (!ok(d.start)||d.start<=ye)&&(!ok(d.end)||d.end>=ys);
 }
-// Read-only deductions for retirement savings set on paychecks, one per deduction name.
-function retireDedCards(I,Y){
-  const paid=I.paychecks.filter(pc=>paycheckInYear(pc,Y)&&paycheckTotals(S.cfg,pc,Y).count>0);
-  const names=[...new Set(paid.flatMap(pc=>(pc.deductions||[]).filter(d=>d.retirement&&+d.amount>0).map(d=>(d.name||'Deduction').trim())))];
-  if(!names.length)return [];
-  const sc=yearSchedule(S.cfg,Y),tot={},cnt={};
-  sc.months.forEach(mo=>names.forEach(n=>{const v=mo.ded[n]||0;tot[n]=(tot[n]||0)+v;if(v>0)cnt[n]=(cnt[n]||0);}));
-  const ev={};names.forEach(n=>ev[n]=0);
-  paid.forEach(pc=>{const w=paycheckTotals(S.cfg,pc,Y);(pc.deductions||[]).forEach(d=>{const k=(d.name||'Deduction').trim();if(d.retirement&&+d.amount>0&&k in ev)ev[k]+=w.count;});});
-  return names.map(n=>h('div',{class:'card stack',style:'background:var(--bg);box-shadow:none;border:1px dashed var(--line)'},
-    h('div',{class:'cathead',style:'grid-template-columns:minmax(0,1fr) auto;margin:0'},
-      h('span',{class:'nameinp',style:'font-family:var(--f-display);font-weight:500;font-size:17px;padding:8px 0'},n),
-      h('span',{class:'pill auto'},'From paychecks · read-only')),
-    h('p',{class:'hint',style:'margin:0'},'Retirement savings set on your paychecks. It’s already subtracted from taxable income, so you don’t need to add it again. ',
-      h('a',{href:'#income',style:'color:var(--accent);font-weight:600'},'Edit it in Income')),
-    h('div',{class:'tbl'},h('table',{},h('tbody',{},
-      h('tr',{class:'sub'},h('td',{},'Paydays in '+Y),h('td',{class:'num'},String(ev[n]||0))),
-      sc.cap>0?h('tr',{class:'sub'},h('td',{},'Yearly max'),h('td',{class:'num'},money(sc.cap)+(sc.reached?' · reached in '+MSHORT[sc.reached-1]:''))):null,
-      h('tr',{class:'total'},h('td',{},'Deducted in '+Y),h('td',{class:'num'},money(tot[n]||0))))))));
-}
 function taxDedCard(d,I,Y){
   const once=d.period==='once',R=taxDeductionYear(d,Y);
   const dateInp=(id,v,commit,label)=>h('input',{type:'date',id,value:v||'','aria-label':label,onchange:e=>commit(e.target.value)});
@@ -2607,29 +2625,13 @@ function taxDedCard(d,I,Y){
       h('tr',{class:'sub'},h('td',{},'Times in '+Y),h('td',{class:'num'},String(R.count))),
       h('tr',{class:'total'},h('td',{},'Deducted in '+Y),h('td',{class:'num'},money(R.total)))))));
 }
-// Payroll taxes and withholding that come out of every paycheck.
-function payrollTaxBox(I){
-  const trows=h('div',{class:'rows taxrows'});
-  if(I.taxes.length)trows.append(h('div',{class:'colhead'},h('span',{},'Name'),h('span',{class:'r'},'Rate or amount'),h('span',{})));
-  I.taxes.forEach(t=>{
-    trows.append(h('div',{class:'erow'},txt('tn-'+t.id,t.name,(v,el)=>{if(!v){el.value=t.name;return;}t.name=v;save();}),
-      amt('tv-'+t.id,t.value,n=>{t.value=t.mode==='pct'?n:r2(n);save();},{pct:t.mode==='pct',label:'Value for '+t.name}),
-      del('Delete '+t.name,()=>{I.taxes=I.taxes.filter(y=>y.id!==t.id);save();}),
-      h('div',{class:'sub2'},
-        h('div',{style:'flex:0 1 190px'},sel('tm-'+t.id,[['pct','% of gross'],['fixed','Fixed per paycheck']],t.mode,v=>{t.mode=v;save();},'How it is calculated')),
-        h('label',{class:'tag'},chk('tb-'+t.id,t.bonus,v=>{t.bonus=v;save();},'Applies to bonuses'),'Applies to bonuses'),
-        h('label',{class:'tag'},chk('ti-'+t.id,t.incomeTax,v=>{t.incomeTax=v;save();},'Income tax withholding'),'Income tax withheld'))));});
-  return h('div',{class:'card'},h('h3',{},'Payroll taxes'),
-    h('p',{class:'hint',style:'margin:0 0 10px'},'These apply to every paycheck. Percentages use each paycheck’s gross; fixed amounts come out of each paycheck.'),
-    trows,h('div',{class:'addrow'},h('button',{class:'btn sm',type:'button',onclick:()=>{I.taxes.push({id:uid(),name:'New tax',mode:'pct',value:0,bonus:false,incomeTax:false});save();}},'Add tax')));
-}
 function vTaxes(){
   const I=S.cfg.income,cy=new Date().getFullYear(),T=C.T,Y=T.year,isCur=Y===cy;
   const root=h('div');
   root.append(incSwitch('taxes'),tipCard('taxes'));
   const pr=taxPR();
-  root.append(h('div',{class:'pagehead'},h('p',{},pr?'Payroll taxes come out of every paycheck. The estimate below works out your Puerto Rico income tax for the year and what you may owe when you file.'
-    :'Payroll taxes and withholding come out of every paycheck.')));
+  root.append(h('div',{class:'pagehead'},h('p',{},pr?'The estimate below works out your Puerto Rico income tax for the year and what you may owe when you file. What comes out of each paycheck is in Deductions.'
+    :'Payroll taxes and withholding are in Deductions.')));
   if(S.cfg.prefs.netOnly){root.append(netOnlyNote('taxes'));return root;}
   root.append(h('div',{class:'nav'},
     h('button',{class:'iconbtn','aria-label':'Previous year',onclick:()=>{view.taxYear=Y-1;render();}},'‹'),
@@ -2639,7 +2641,7 @@ function vTaxes(){
   if(!pr){
     root.append(h('div',{class:'card exbanner'},h('div',{},h('b',{},'Income tax estimate is for Puerto Rico only'),
       h('p',{class:'hint',style:'margin:2px 0 0'},'You file somewhere else, so the yearly estimate is turned off. You can change this in Settings → Taxes.'))));
-    root.append(h('div',{class:'cols'},h('div',{class:'stack'},payrollTaxBox(I))));
+    root.append(h('p',{class:'hint'},'Payroll taxes and income tax withheld are in ',h('a',{href:'#deductions',style:'color:var(--accent);font-weight:600'},'Income → Deductions'),'.'));
     return root;
   }
   root.append(h('div',{class:'summary'},h('div',{class:'lead'},
@@ -2650,7 +2652,6 @@ function vTaxes(){
       isCur?h('div',{class:'stat'},h('span',{class:'eyebrow'},'Set aside monthly'),h('b',{class:'num'},money(Math.max(0,T.outOfPocket)/12)))
         :h('div',{class:'stat'},h('span',{class:'eyebrow'},'Taxable income'),h('b',{class:'num'},money(T.taxable)))))));
   const grid=h('div',{class:'cols'});
-  const taxBox=payrollTaxBox(I);
   const est=h('div',{class:'card stack'},h('h3',{},'PR income tax estimate',h('span',{class:'hint num'},String(Y))));
   est.append(h('div',{class:'field'},h('span',{style:'font-weight:600;font-size:14px'},'Personal exemption'),h('span',{class:'num'},money(EXEMPTION)+' (standard)')),
     h('label',{class:'check'},chk('rp',I.applyReduction!==false,v=>{I.applyReduction=v;save();},'Apply tax reduction'),h('span',{},'Apply the '+REDUCTION+'% tax reduction')));
@@ -2660,7 +2661,7 @@ function vTaxes(){
   est.append(h('div',{class:'tbl'},h('table',{},h('tbody',{},
     h('tr',{},h('td',{},'Pay while paychecks are active'),h('td',{class:'num'},money(T.payGross))),
     T.bonusTotal>0?h('tr',{},h('td',{},'Bonuses'),h('td',{class:'num'},money(T.bonusTotal))):null,
-    T.retireYear>0?h('tr',{class:'sub'},h('td',{},'Retirement savings'),h('td',{class:'num'},'−'+money(T.retireYear))):null,
+    T.nonTaxYear>0?h('tr',{class:'sub'},h('td',{},'Non-taxable paycheck deductions'),h('td',{class:'num'},'−'+money(T.nonTaxYear))):null,
     ...T.dedItems.map(x=>h('tr',{class:'sub'},h('td',{},x.name+(x.count>1?' ('+x.count+'×)':'')),h('td',{class:'num'},'−'+money(x.total)))),
     h('tr',{class:'sub'},h('td',{},'Personal exemption'),h('td',{class:'num'},'−'+money(T.stdDed))),
     h('tr',{},h('td',{},'Taxable income'),h('td',{class:'num'},money(T.taxable))),
@@ -2671,9 +2672,14 @@ function vTaxes(){
     taxLineLink(T,cy));
   const dedStack=h('div',{class:'stack'});
   const tds=(I.taxDeductions||[]).filter(d=>deductionInYear(d,Y)).sort((a,b)=>String(b.start||'').localeCompare(String(a.start||'')));
-  dedStack.append(h('div',{class:'pagehead',style:'margin:8px 0 0'},h('h2',{style:'font-size:19px'},'Deductions'),
-    h('p',{},'Income that isn’t taxed, or amounts you can deduct. Each one counts in '+Y+' on its dates.')));
-  const rcards=retireDedCards(I,Y);rcards.forEach(c=>dedStack.append(c));
+  dedStack.append(h('div',{class:'pagehead',style:'margin:8px 0 0'},h('h2',{style:'font-size:19px'},'Other tax deductions'),
+    h('p',{},'Amounts you deduct on your tax return that don’t come out of your pay, or income that isn’t taxed. Each one counts in '+Y+' on its dates.')));
+  const rcards=[];
+  if(T.nonTaxYear>0||T.withheld>0)rcards.push(h('div',{class:'card stack',style:'background:var(--bg);box-shadow:none;border:1px dashed var(--line)'},
+    h('div',{class:'cathead',style:'grid-template-columns:minmax(0,1fr) auto;margin:0'},h('span',{class:'nameinp',style:'font-family:var(--f-display);font-weight:500;font-size:17px;padding:8px 0'},'From your paychecks'),h('span',{class:'pill auto'},'Read-only')),
+    h('p',{class:'hint',style:'margin:0'},money(T.nonTaxYear)+' in non-taxable deductions and '+money(T.withheld)+' in income tax withheld in '+Y+' are already counted. ',
+      h('a',{href:'#deductions',style:'color:var(--accent);font-weight:600'},'Edit them in Deductions'))));
+  rcards.forEach(c=>dedStack.append(c));
   tds.forEach(d=>dedStack.append(taxDedCard(d,I,Y)));
   if(!tds.length&&!rcards.length)dedStack.append(h('div',{class:'card empty'},h('b',{},'No deductions in '+Y),(I.taxDeductions||[]).length?'Your other deductions are outside this year.':'Add one below.'));
   const hiddenD=(I.taxDeductions||[]).length-tds.length;
@@ -2681,7 +2687,7 @@ function vTaxes(){
     hiddenD?h('p',{class:'hint',style:'margin:0 0 10px'},hiddenD+' deduction'+(hiddenD>1?'s are':' is')+' outside '+Y+' and hidden.'):null,
     h('button',{class:'btn primary',type:'button',onclick:()=>{const d={id:'td'+uid().replace(/-/g,'').slice(0,10),name:'New deduction',period:'yearly',amount:0,start:isCur?today():Y+'-01-01',end:''};
       I.taxDeductions=I.taxDeductions||[];I.taxDeductions.push(d);save();setTimeout(()=>{const el=document.getElementById('tdn-'+d.id);if(el){el.scrollIntoView({block:'center'});el.select();}},0);}},'Add deduction')));
-  grid.append(h('div',{class:'stack'},taxBox,isSimple()&&!tds.length&&!rcards.length?null:dedStack),h('div',{class:'stack'},est));root.append(grid);
+  grid.append(h('div',{class:'stack'},est),h('div',{class:'stack'},isSimple()&&!tds.length?(rcards[0]||null):dedStack));root.append(grid);
   root.append(simpleNote());
   return root;
 }
@@ -2770,12 +2776,101 @@ $('#fab').addEventListener('click',()=>addChooser());
 $('#donefab').addEventListener('click',()=>{view.planEdit=false;render();toast('Changes saved');});
 $('#editfab').addEventListener('click',()=>{view.planEdit=true;render();toast('Editing your plan');});
 
-const ROUTES=['overview','month','year','plan','income','taxes','import','settings'];
+const ROUTES=['overview','month','year','plan','income','deductions','taxes','import','settings'];
 let lastExp='month';
 function route(){let r=(location.hash||'').replace('#','');if(r==='bills')r='plan';if(r==='expenses')r=lastExp;if(r==='month'||r==='year')lastExp=r;view.route=ROUTES.includes(r)?r:'overview';render();}
 window.addEventListener('hashchange',()=>{route();window.scrollTo(0,0);});
 route();
 
+// ===== Income → Deductions: everything taken out of paychecks, each with its own dates =====
+const openDeds=new Set();
+const DPRESETS=[
+  ['Retirement (401K)',{mode:'pct',value:5,retirement:true,nonTaxable:true}],
+  ['Health savings (HSA)',{mode:'paycheck',value:0,health:true,nonTaxable:true}],
+  ['Health insurance',{mode:'monthly',value:0,insurance:true,nonTaxable:true}],
+  ['Income tax withheld',{mode:'paycheck',value:0,withheld:true}],
+  ['Social Security',{mode:'pct',value:6.2,payrollTax:true}],
+  ['Medicare',{mode:'pct',value:1.45,payrollTax:true}]];
+function dedRank(d){const t=today(),ok=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'');return ok(d.start)&&d.start>t?1:ok(d.end)&&d.end<t?2:0;}
+function dedStatus(d){const r=dedRank(d);return r===0?h('span',{class:'pill rec'},'Active'):r===1?h('span',{class:'pill auto'},'Starts '+fmtDate(d.start)):h('span',{class:'pill auto'},'Ended '+fmtDate(d.end));}
+function addDeduction(preset){
+  const I=S.cfg.income;I.payrollDeductions=I.payrollDeductions||[];
+  const d=newDeduction(Object.assign({name:preset?preset[0]:'New deduction',start:''},preset?preset[1]:{}));
+  I.payrollDeductions.push(d);openDeds.add(d.id);
+  if(view.route!=='deductions')location.hash='#deductions';
+  save();toast('Added '+d.name);
+  setTimeout(()=>{const el=document.getElementById((preset&&!+d.value?'ddv-':'ddn-')+d.id);if(el){el.scrollIntoView({block:'center'});el.focus();if(el.select)el.select();}},60);
+}
+// What a deduction comes to on the current regular paycheck, in words.
+function dedHint(d){
+  const pcs=S.cfg.income.paychecks.filter(p=>!p.bonus&&payRank(p)===0),pc=pcs[0];
+  const v=num(d.value,0),parts=[];
+  if(d.mode==='pct'){if(pc)parts.push('About '+money(num(pc.gross,0)*v/100)+' from each '+pc.name+' paycheck');parts.push('also comes out of bonuses');}
+  else if(d.mode==='paycheck'){parts.push(money(v)+' from every paycheck');if(pc)parts.push('about '+money(v*(PERIODS[pc.period]||PERIODS.monthly).ppm)+' a month');parts.push('not taken from bonuses');}
+  else{parts.push(money(v)+' a month, split across that month’s paychecks');parts.push('not taken from bonuses');}
+  return parts.join(' · ');
+}
+function deductionCard(d,I){
+  const inactive=dedRank(d)!==0;
+  const toggle=()=>{if(openDeds.has(d.id))openDeds.delete(d.id);else openDeds.add(d.id);render();};
+  const kinds=DFLAGS.filter(([k])=>d[k]).map(([,l])=>l);
+  const amtText=d.mode==='pct'?num(d.value,0)+'%':money(num(d.value,0))+(d.mode==='monthly'?' / month':' / paycheck');
+  if(inactive&&!openDeds.has(d.id))return h('div',{class:'card'},h('button',{type:'button',class:'pcfold','aria-expanded':'false',onclick:toggle},
+    h('span',{class:'arrow','aria-hidden':'true'},'›'),h('span',{class:'pcname'},d.name,h('small',{},kinds.join(' · ')||'Deduction')),dedStatus(d),h('span',{class:'num pcnet'},amtText)));
+  const card=h('div',{class:'card stack dedcard'});
+  card.append(h('div',{class:'cathead',style:'grid-template-columns:'+(inactive?'auto ':'')+'minmax(0,1fr) auto auto;margin:0'},
+    inactive?h('button',{type:'button',class:'pcfold-btn','aria-label':'Collapse '+d.name,'aria-expanded':'true',onclick:toggle},h('span',{class:'arrow open','aria-hidden':'true'},'›')):null,
+    txt('ddn-'+d.id,d.name,(v,el)=>{if(!v){el.value=d.name;return;}d.name=v;save();}),dedStatus(d),
+    del('Delete '+d.name,()=>{I.payrollDeductions=I.payrollDeductions.filter(x=>x.id!==d.id);save();toast('Deleted “'+d.name+'”');})));
+  card.querySelector('#ddn-'+CSS.escape(d.id)).classList.add('nameinp');
+  const dateInp=(id,v,commit,label)=>h('input',{type:'date',id,value:v||'','aria-label':label,onchange:e=>commit(e.target.value)});
+  card.append(h('div',{class:'two'},
+    h('div',{class:'field'},h('label',{for:'ddm-'+d.id},'Type'),sel('ddm-'+d.id,DMODES,d.mode,v=>{d.mode=v;save();},'Deduction type')),
+    h('div',{class:'field'},h('label',{for:'ddv-'+d.id},d.mode==='pct'?'Percentage of gross':d.mode==='monthly'?'Amount per month':'Amount per paycheck'),
+      amt('ddv-'+d.id,d.value,n=>{d.value=d.mode==='pct'?n:r2(n);save();},{pct:d.mode==='pct',label:'Amount for '+d.name})),
+    h('div',{class:'field'},h('label',{for:'dds-'+d.id},'Start date'),dateInp('dds-'+d.id,d.start,v=>{if(v&&d.end&&v>d.end){toast('Start date must be before the end date.');render();return;}d.start=v;openDeds.add(d.id);save();},'Start date'),
+      h('span',{class:'hint'},d.start?'Applies to paychecks from this date.':'No start date: applies to every paycheck.')),
+    h('div',{class:'field'},h('label',{for:'dde-'+d.id},'End date (optional)'),dateInp('dde-'+d.id,d.end,v=>{if(v&&d.start&&v<d.start){toast('End date must be after the start date.');render();return;}d.end=v;openDeds.add(d.id);save();},'End date'),
+      d.end?h('button',{type:'button',class:'linkbtn',style:'justify-self:start;padding:0;font-size:13px;line-height:18px',onclick:()=>{d.end='';save();}},'Clear end date'):h('span',{class:'hint'},'Leave empty if it’s ongoing.'))));
+  // Kinds: retirement, health savings and insurance are usually pre-tax, so ticking them ticks Non-taxable too (it can be unticked).
+  const flags=h('div',{class:'dedflags',role:'group','aria-label':'What this deduction is'},...DFLAGS.map(([k,l])=>
+    h('label',{class:'tag'},chk('ddf'+k+'-'+d.id,!!d[k],v=>{d[k]=v;if(v&&(k==='retirement'||k==='health'||k==='insurance'))d.nonTaxable=true;save();},l),l)));
+  card.append(h('div',{},h('h4',{class:'eyebrow',style:'margin:2px 0 8px'},'This deduction is'),flags,
+    h('p',{class:'hint',style:'margin:8px 0 0'},dedHint(d)+'.'+(d.nonTaxable?' Lowers your taxable income.':''))));
+  return card;
+}
+function vDeductions(){
+  const I=S.cfg.income,cy=new Date().getFullYear(),Y=view.incomeYear,isCur=Y===cy,cm=today().slice(0,7);
+  const root=h('div');
+  root.append(incSwitch('deductions'),tipCard('deductions'));
+  root.append(h('div',{class:'pagehead'},h('p',{},'Everything taken out of your paychecks: payroll taxes, income tax withheld, retirement, health savings, insurance and more. Each one has its own dates, so a change is a new deduction from that date.')));
+  if(S.cfg.prefs.netOnly){root.append(netOnlyNote('taxes'));return root;}
+  root.append(h('div',{class:'nav'},
+    h('button',{class:'iconbtn','aria-label':'Previous year',onclick:()=>{view.incomeYear--;render();}},'‹'),
+    h('button',{class:'iconbtn','aria-label':'Next year',onclick:()=>{view.incomeYear++;render();}},'›'),
+    h('h2',{},String(Y)),
+    isCur?null:h('button',{class:'linkbtn',onclick:()=>{view.incomeYear=cy;render();}},'Back to '+cy+' →')));
+  const yi=C.yearIncome(Y),Bm=incomeBreakdown(S.cfg,[cm]);
+  root.append(h('div',{class:'summary'},h('div',{class:'lead'},
+    h('div',{},h('div',{class:'eyebrow'},'Taken out in '+Y),h('div',{class:'big num'},money(yi.ded+yi.tax))),
+    h('div',{class:'stats'},
+      isCur?h('div',{class:'stat'},h('span',{class:'eyebrow'},'This month'),h('b',{class:'num'},money(Bm.dedTotal+Bm.taxTotal))):null,
+      h('div',{class:'stat'},h('span',{class:'eyebrow'},'Non-taxable in '+Y),h('b',{class:'num'},money(yi.nonTax))),
+      h('div',{class:'stat'},h('span',{class:'eyebrow'},'Tax withheld in '+Y),h('b',{class:'num'},money(yi.withheld)))))));
+  const ys=Y+'-01-01',ye=Y+'-12-31',ok=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'');
+  const inYear=d=>(!ok(d.start)||d.start<=ye)&&(!ok(d.end)||d.end>=ys);
+  const list=(I.payrollDeductions||[]).filter(inYear).sort((a,b)=>dedRank(a)-dedRank(b)||String(b.start||'').localeCompare(String(a.start||'')));
+  const stack=h('div',{class:'stack'});
+  if(!list.length)stack.append(h('div',{class:'card empty'},h('b',{},'No deductions in '+Y),(I.payrollDeductions||[]).length?'Your other deductions are outside this year.':'Add what comes out of your paychecks, like Social Security, Medicare, retirement and insurance. Your pay stub lists them.'));
+  list.forEach(d=>stack.append(deductionCard(d,I)));
+  const hidden=(I.payrollDeductions||[]).length-list.length;
+  stack.append(h('div',{class:'card stack'},h('h3',{},'Add a deduction'),
+    h('p',{class:'hint',style:'margin:0'},'Start from a common one or a blank deduction.'+(hidden?' '+hidden+' deduction'+(hidden>1?'s are':' is')+' outside '+Y+' and hidden.':'')),
+    h('div',{class:'presets'},...DPRESETS.map(p=>h('button',{type:'button',class:'chip',onclick:()=>addDeduction(p)},'+ '+p[0]))),
+    h('div',{},h('button',{type:'button',class:'btn primary',onclick:()=>addDeduction(null)},'Add blank deduction'))));
+  root.append(stack);
+  return root;
+}
 // ===== Simpler navigation: Income/Taxes switch, tax region, Simple view, tips, and the one + button =====
 // Function declarations so the first render (before this point runs) can use them.
 function taxPR(){return S.cfg.prefs.taxRegion!=='other';}
@@ -2783,14 +2878,15 @@ function isSimple(){return S.cfg.prefs.view==='simple';}
 function incSwitch(mode){
   return h('div',{class:'exphead'},h('h2',{},'Income'),
     h('div',{class:'seg',role:'tablist','aria-label':'Income view'},
-      [['income','Paychecks'],['taxes','Taxes']].map(([k,l])=>h('button',{type:'button',role:'tab','aria-selected':String(mode===k),class:mode===k?'on':'',onclick:()=>{if(k!==mode)location.hash='#'+k;}},l))));
+      [['income','Paychecks'],['deductions','Deductions'],['taxes','Taxes']].map(([k,l])=>h('button',{type:'button',role:'tab','aria-selected':String(mode===k),class:mode===k?'on':'',onclick:()=>{if(k!==mode)location.hash='#'+k;}},l))));
 }
 function tipText(k){return ({
   overview:'Home shows what’s left to spend this month and what’s coming up. Tap + Add whenever you spend money.',
   plan:'Plan is what you expect to spend each month. Spending is what actually happened. Tap ✏️ to reorder or delete items.',
   spending:'Everything you’ve spent, month by month. Plan items with Auto-add show up here on their dates.',
+  deductions:'Everything that comes out of your pay. Retirement, health savings and insurance are usually not taxed, so they lower your taxable income.',
   income:'Your paychecks and the dates each one applies. For a raise or a new job, add a new paycheck instead of changing the old one, so past months stay right.',
-  taxes:taxPR()?'Payroll taxes come out of each paycheck. The estimate shows whether you may owe or get a refund when you file.':'Payroll taxes and withholding come out of each paycheck. Edit the rates here if your pay stub shows different ones.'
+  taxes:'The estimate shows whether you may owe or get a refund when you file. Add things you deduct on your return, like mortgage interest, under Other tax deductions.'
 })[k];}
 // One short tip per tab, shown once. Only new accounts start with tips on; Settings can show them again.
 function tipCard(key){
@@ -2800,7 +2896,7 @@ function tipCard(key){
 }
 function simpleNote(){
   if(!isSimple())return null;
-  return h('p',{class:'hint simplenote'},'Simple view hides some options, like bank import and paycheck deductions. ',
+  return h('p',{class:'hint simplenote'},'Simple view hides some options, like bank import and tax deductions. ',
     h('button',{type:'button',class:'linkbtn',style:'padding:0;font-size:inherit',onclick:()=>{S.cfg.prefs.view='detailed';save();toast('Detailed view is on');}},'Show all options'));
 }
 function viewCard(){
@@ -2808,7 +2904,7 @@ function viewCard(){
   return h('div',{class:'card stack'},
     h('div',{class:'seg',role:'radiogroup','aria-label':'How much to show'},[['simple','Simple'],['detailed','Detailed']].map(([k,l])=>
       h('button',{type:'button',role:'radio','aria-checked':String(v===k),class:v===k?'on':'',onclick:()=>{S.cfg.prefs.view=k;save();}},l))),
-    h('p',{class:'hint',style:'margin:0'},v==='simple'?'Shows the essentials. Hidden: bank import, Auto-add dates on plan items, savings trackers for big bills, paycheck deductions, tax deductions, and retirement and automatic-expense settings. Anything you already use stays visible.'
+    h('p',{class:'hint',style:'margin:0'},v==='simple'?'Shows the essentials. Hidden: bank import, Auto-add dates on plan items, savings trackers for big bills, tax return deductions, and retirement and automatic-expense settings. Anything you already use stays visible.'
       :'Shows every option. Switch to Simple to hide the advanced ones.'));
 }
 function regionCard(){
@@ -2825,7 +2921,7 @@ function addPaycheck(Y){
   const I=S.cfg.income,cy=new Date().getFullYear();Y=Y||cy;const isCur=Y===cy;
   const last=sortedPaychecks(I).find(p=>!p.bonus)||null;
   const pc={id:'pc'+uid().replace(/-/g,'').slice(0,10),name:'Paycheck '+(I.paychecks.length+1),period:last&&last.period!=='once'?last.period:'biweekly',gross:last?last.gross:0,start:isCur?today():Y+'-01-01',end:'',
-    deductions:last?last.deductions.map(x=>({...x,id:uid()})):[]};
+    deductions:[]};
   I.paychecks.push(pc);openPcs.add(pc.id);
   if(view.route!=='income'){view.incomeYear=Y;location.hash='#income';}
   save();toast('Added '+pc.name+'. Enter its amount.');
@@ -2899,9 +2995,9 @@ function setupBuild(){
   I.paychecks=[];
   if(!W.noPay&&pnum(W.amount)){
     I.paychecks.push({id:'pc'+sid(),name:'Main job',period:W.period,gross:r2(pnum(W.amount)),start:firstPayday(W.period,W.next),end:'',deductions:[]});
-    if(W.gross){I.taxes=defaultTaxes();I.taxes.forEach(t=>{if(t.incomeTax){t.value=r2(pnum(W.withheld));if(W.region==='other')t.name='Income tax withheld';}});P.netOnly=false;}
-    else{I.taxes=[];P.netOnly=true;}
-  }else if(!W.base){I.taxes=[];P.netOnly=true;}
+    if(W.gross){I.taxes=[];if(!(W.base&&(I.payrollDeductions||[]).length))I.payrollDeductions=defaultDeductions(r2(pnum(W.withheld)),W.region);P.netOnly=false;}
+    else{I.taxes=[];I.payrollDeductions=[];P.netOnly=true;}
+  }else if(!W.base){I.taxes=[];I.payrollDeductions=[];P.netOnly=true;}
   cfg.plan=[];
   const line=(name,cat,amount)=>({id:'p'+sid(),categoryId:setupCat(cfg,cat),name,amount:r2(amount),include:true,auto:null,freq:'monthly',due:''});
   SETUP_BILLS.forEach(([n,cat],i)=>{const a=pnum(W.bills[i]);if(a)cfg.plan.push(line(n,cat,a));});
@@ -3018,8 +3114,8 @@ function exampleBanner(){
       confirmDialog({title:'Clear the example numbers?',body:'This removes the example numbers and the '+n+' expense'+(n>1?'s':'')+' you added, then opens the setup guide.',actions:[{label:'Clear and set up',kind:'primary',onClick:reset}]});}},'Set up my own'));
 }
 // Take-home only: nothing to estimate for taxes until there's pay before taxes.
-function switchToGross(){const I=S.cfg.income;S.cfg.prefs.netOnly=false;if(!I.taxes.length){I.taxes=defaultTaxes();I.taxes.forEach(t=>{if(t.incomeTax)t.value=0;});}
-  save();location.hash='#income';toast('Now change each paycheck to your pay before taxes. Payroll taxes are in the Taxes tab.');}
+function switchToGross(){const I=S.cfg.income;S.cfg.prefs.netOnly=false;if(!(I.payrollDeductions||[]).length)I.payrollDeductions=defaultDeductions(0,taxPR()?'pr':'other');
+  save();location.hash='#income';toast('Now change each paycheck to your pay before taxes. Payroll taxes are in Income → Deductions.');}
 function netOnlyNote(where){
   if(!S.cfg.prefs.netOnly)return null;
   return h('div',{class:'card exbanner'},h('div',{},h('b',{},where==='taxes'?'No tax estimate yet':'You’re tracking take-home pay'),
