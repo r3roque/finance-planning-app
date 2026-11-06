@@ -363,6 +363,10 @@ th:first-child,td:first-child{text-align:left}
 thead th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
 tr.total td{font-weight:700;border-bottom:0}
 tr.sub td{color:var(--muted)}
+.tbl tr.grp .tgl{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.tbl tr.grp .tgl .arrow{display:inline-block;width:12px;color:var(--muted);transition:transform .15s}.tbl tr.grp .tgl .arrow.open{transform:rotate(90deg)}
+.tbl tr.child td{font-size:.92em}.tbl tr.child td:first-child{padding-left:30px;position:relative}
+.tbl tr.child td:first-child::before{content:"";position:absolute;left:12px;top:0;bottom:0;border-left:2px solid var(--line)}
 @media (max-width:520px){table{min-width:0}th,td{padding:8px 4px;font-size:14px}td:first-child,th:first-child{white-space:normal}}
 
 /* charts */
@@ -2328,6 +2332,7 @@ function payStatus(pc){
 }
 const openSubs=new Set();
 // Paycheck cards: active ones start open and inactive ones folded; each remembers being opened or folded.
+const ptOpen=new Set();
 const pcOpen=new Map(),openPcs={add:id=>pcOpen.set(id,true)};
 function payRank(pc){const t=today(),ok=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'');if(pc.period==='once')return !ok(pc.start)||pc.start===t?0:pc.start>t?1:2;return ok(pc.start)&&pc.start>t?1:ok(pc.end)&&pc.end<t?2:0;}
 function payRange(pc){const ok=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'');if(pc.period==='once')return ok(pc.start)?'One time, '+fmtDate(pc.start):'One time, no date';return (ok(pc.start)?fmtDate(pc.start):'No start date')+' – '+(ok(pc.end)?fmtDate(pc.end):'ongoing');}
@@ -2567,16 +2572,24 @@ function vIncome(){
   const Qm=incomeBreakdown(S.cfg,[cm],'bonus'),Qy=incomeBreakdown(S.cfg,yMonths,'bonus');
   const hasB=Qy.gross>0||(isCur&&Qm.gross>0);
   const names=(a,b,k)=>[...new Set([...Object.keys(b[k]),...(isCur?Object.keys(a[k]):[])])];
-  const section=(M,Yr,grossLabel,netLabel)=>[row(grossLabel,M.gross,Yr.gross),
-    ...names(M,Yr,'ded').map(k=>row(k,-(M.ded[k]||0),-(Yr.ded[k]||0),'sub')),M.dedTotal||Yr.dedTotal?row('Deductions',-M.dedTotal,-Yr.dedTotal):null,
-    ...names(M,Yr,'tax').map(k=>row(k,-(M.tax[k]||0),-(Yr.tax[k]||0),'sub')),row('Taxes',-M.taxTotal,-Yr.taxTotal),
+  // Deductions and Taxes are folded subtotals; opening one lists its items indented underneath.
+  const group=(key,label,M,Yr,kind)=>{
+    const items=names(M,Yr,kind),open=ptOpen.has(key);
+    if(!items.length&&!M[kind+'Total']&&!Yr[kind+'Total'])return [];
+    const btn=h('button',{type:'button',class:'tgl','aria-expanded':String(open),onclick:()=>{if(open)ptOpen.delete(key);else ptOpen.add(key);render();}},
+      h('span',{class:'arrow'+(open?' open':''),'aria-hidden':'true'},'›'),label);
+    return [h('tr',{class:'grp'},h('td',{},btn),isCur?h('td',{class:'num'},money(-M[kind+'Total'])):null,h('td',{class:'num'},money(-Yr[kind+'Total']))),
+      ...(open?items.map(k=>row(k,-(M[kind][k]||0),-(Yr[kind][k]||0),'sub child')):[])];
+  };
+  const section=(key,M,Yr,grossLabel,netLabel)=>[row(grossLabel,M.gross,Yr.gross),
+    ...group(key+'-ded','Deductions',M,Yr,'ded'),...group(key+'-tax','Taxes',M,Yr,'tax'),
     row(netLabel,M.net,Yr.net,'total')];
   const span=isCur?3:2;
   right.append(h('div',{class:'card'},h('h3',{},'From pay to take-home'),h('div',{class:'tbl'},h('table',{},
     h('thead',{},h('tr',{},h('th',{},hasB?'Paychecks':'All paychecks'),isCur?h('th',{},'This month'):null,h('th',{},String(Y)))),
-    h('tbody',{},...section(Pm,Py,'Gross income','Net pay'),
+    h('tbody',{},...section('pay',Pm,Py,'Gross income','Net pay'),
       ...(hasB?[h('tr',{},h('td',{colspan:span,style:'border:0;padding-top:16px'},h('span',{class:'eyebrow'},'Bonuses'))),
-        ...section(Qm,Qy,'Bonuses','Net bonuses'),
+        ...section('bonus',Qm,Qy,'Bonuses','Net bonuses'),
         h('tr',{},h('td',{colspan:span,style:'border:0;padding:4px'})),
         row('Net income with bonuses',Pm.net+Qm.net,Py.net+Qy.net,'total')]:[])))),
     h('p',{class:'hint',style:'margin:8px 0 0'},'Adds up every payday '+(isCur?'in the month and the year':'in '+Y)+'. Deductions with the same name are combined. Paychecks marked as a bonus are listed separately.')));
