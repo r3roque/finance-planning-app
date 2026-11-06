@@ -1855,7 +1855,7 @@ function upcomingCard(){
   items.forEach(x=>{
     if(x.date!==last){list.append(h('div',{class:'upday'},dayLabel(x.date)));last=x.date;}
     const c=catOf(x.categoryId);
-    list.append(h('div',{class:'uprow'},h('span',{class:'dot',style:'background:'+c.color}),h('span',{class:'n'},x.name,h('small',{},c.name+(x.auto?' · recurring, added by plan':x.src==='repeat'?' · repeats monthly':''))),h('span',{class:'num'},money(x.amount))));
+    list.append(h('div',{class:'uprow'},h('span',{class:'dot',style:'background:'+c.color}),h('span',{class:'n'},x.name,h('small',{},c.name+(x.auto?' · recurring':x.src==='repeat'?' · repeats monthly':''))),h('span',{class:'num'},money(x.amount))));
   });
   card.append(list,h('div',{class:'uptotal'},h('span',{},items.length+' due · through '+fmtDate(end)),h('b',{class:'num'},money(total))));
   return card;
