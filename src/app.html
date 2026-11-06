@@ -2859,7 +2859,7 @@ function vDeductions(){
   const ys=Y+'-01-01',ye=Y+'-12-31',ok=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'');
   const inYear=d=>(!ok(d.start)||d.start<=ye)&&(!ok(d.end)||d.end>=ys);
   const list=(I.payrollDeductions||[]).filter(inYear).sort((a,b)=>dedRank(a)-dedRank(b)||String(b.start||'').localeCompare(String(a.start||'')));
-  const stack=h('div',{class:'stack'});
+  const stack=h('div',{class:'stack',style:'margin-top:18px'});
   if(!list.length)stack.append(h('div',{class:'card empty'},h('b',{},'No deductions in '+Y),(I.payrollDeductions||[]).length?'Your other deductions are outside this year.':'Add what comes out of your paychecks, like Social Security, Medicare, retirement and insurance. Your pay stub lists them.'));
   list.forEach(d=>stack.append(deductionCard(d,I)));
   const hidden=(I.payrollDeductions||[]).length-list.length;
