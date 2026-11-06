@@ -659,14 +659,13 @@ function migrateDeductions(inc){
 function defaultTaxes(){return [{id:uid(),name:'Medicare',mode:'pct',value:1.45,bonus:true,incomeTax:false},
   {id:uid(),name:'Social Security',mode:'pct',value:6.2,bonus:true,incomeTax:false},
   {id:uid(),name:'PR income tax withheld',mode:'fixed',value:1485,bonus:false,incomeTax:true}];}
+// The empty starting point: categories and tax brackets only, no amounts.
 function defaults(){
   return {v:2,
-    income:{paychecks:[{id:'pc1',name:'Main job',period:'monthly',gross:10000,start:new Date().getFullYear()+'-01-01',end:'',deductions:[]}],
-      taxes:[],payrollDeductions:defaultDeductions(1485).concat([newDeduction({id:'d1',name:'Retirement (401K)',mode:'paycheck',value:1250,retirement:true,nonTaxable:true})]),bonuses:[],taxDeductions:[],nonTaxable:0,applyReduction:true,brackets:defaultBrackets()},
+    income:{paychecks:[],
+      taxes:[],payrollDeductions:[],bonuses:[],taxDeductions:[],nonTaxable:0,applyReduction:true,brackets:defaultBrackets()},
     categories:defaultCategories(),
-    plan:[{id:'p1',categoryId:'groceries',name:'Groceries',amount:650,include:true,auto:null},
-          {id:'p2',categoryId:'utilities',name:'Electricity & water',amount:500,include:true,auto:null},
-          {id:'p3',categoryId:'utilities',name:'Phone & internet',amount:350,include:true,auto:null}],
+    plan:[],
     bills:[],rules:[],goals:[],prefs:{upcomingDays:7,efMonths:6,efSaved:0}};
 }
 // A new account starts empty and opens the setup walkthrough.
@@ -3101,8 +3100,7 @@ function setupRender(){
       nav(2,()=>{S.cfg=cfg;closeSetup();save();location.hash='#overview';toast('You’re all set');},'Start using Finance Planning'));
   }
   el.replaceChildren(h('div',{class:'authbox setupbox'},h('div',{class:'brand'},h('h1',{},'Finance Planning')),dots,body,
-    W.step===0&&!W.base?h('p',{class:'hint',style:'margin:0;text-align:center'},'Just looking around? ',h('button',{type:'button',class:'linkbtn',style:'padding:0',onclick:()=>{
-      const ex=normalize(defaults());ex.prefs.setup='example';ex.prefs.ovMore=true;S.cfg=ex;closeSetup();save();location.hash='#overview';}},'Explore with example numbers')):null));
+    null));
   setTimeout(()=>{if(document.activeElement&&el.contains(document.activeElement))return;const f=el.querySelector('input');if(f&&W&&W.step<3)f.focus({preventScroll:true});},30);
 }
 // ===== Home: getting-started checklist and the example-data banner =====
