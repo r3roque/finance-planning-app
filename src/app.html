@@ -560,7 +560,6 @@ body #fab{background:var(--accent);color:var(--accent-ink);border:0;box-shadow:0
     <div class="amtbig">
       <label for="f-amount" class="sr">Amount</label>
       <div class="amtline"><span class="cur" aria-hidden="true">$</span><input type="text" inputmode="decimal" id="f-amount" class="num" autocomplete="off" placeholder="0"></div>
-      <button type="button" class="chip" id="f-ivu" title="Add Puerto Rico sales tax (IVU) of 11.5%">+ IVU 11.5%</button>
     </div>
     <div class="igroup">
       <div class="irow"><label for="f-cat">Category</label><select id="f-cat"></select></div>
@@ -2751,7 +2750,6 @@ function openSheet(id,pre){
   $('#f-save').textContent=e?'Save':'Add';
   $('#f-delgroup').hidden=!e;
   $('#f-freqbox').hidden=!!e;
-  $('#f-ivu').hidden=!taxPR();
   $('#f-plannote').hidden=!(e&&e.fromPlan);
   const sl=$('#f-cat');sl.replaceChildren(...S.cfg.categories.map(c=>h('option',{value:c.id},c.name)));
   if(e&&!S.cfg.categories.some(c=>c.id===e.categoryId))sl.append(h('option',{value:e.categoryId},'Uncategorized'));
@@ -2773,7 +2771,6 @@ function freqHint(){const v=$('#f-freq').value;
   $('#f-freqhint').textContent=v==='once'?'Logged once, on this date. Pick a repeat to add it to your plan instead.':'Adds a '+FREQ[v].label.toLowerCase()+' line to your plan, with this date as the first payment. It adds itself to Spending on each date.';
   $('#f-datelabel').textContent=v==='once'?'Date':'First paid on';}
 $('#f-freq').addEventListener('change',freqHint);
-$('#f-ivu').addEventListener('click',()=>{const n=parseAmt($('#f-amount').value);if(isNaN(n)){toast('Enter the amount before tax first.');return;}$('#f-amount').value=(Math.round(n*1.115*100)/100).toFixed(2);fitAmount();});
 $('#f-cancel').addEventListener('click',closeSheet);
 $('#overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeSheet();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#overlay').hidden&&$('#confirm').hidden)closeSheet();});
@@ -2967,7 +2964,7 @@ function regionCard(){
   return h('div',{class:'card stack'},
     h('div',{class:'seg',role:'radiogroup','aria-label':'Where you file income taxes'},[['pr','Puerto Rico'],['other','Somewhere else']].map(([k,l])=>
       h('button',{type:'button',role:'radio','aria-checked':String((pr?'pr':'other')===k),class:(pr?'pr':'other')===k?'on':'',onclick:()=>{S.cfg.prefs.taxRegion=k;save();}},l))),
-    h('p',{class:'hint',style:'margin:0'},pr?'Shows the Puerto Rico income tax estimate and the IVU button when adding expenses.':'Hides the Puerto Rico income tax estimate and IVU. Payroll taxes still come out of each paycheck.'));
+    h('p',{class:'hint',style:'margin:0'},pr?'Shows the Puerto Rico income tax estimate.':'Hides the Puerto Rico income tax estimate. Payroll taxes still come out of each paycheck.'));
 }
 function tipsCard(){
   return h('div',{class:'card'},h('button',{type:'button',class:'btn',onclick:()=>{S.cfg.prefs.tips={};save();toast('Tips will show again on each tab');}},'Show tips again'));
