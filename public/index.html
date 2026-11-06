@@ -428,15 +428,44 @@ footer.status{margin-top:26px;color:var(--muted);font-size:12px;text-align:cente
 .methic{width:22px;display:inline-grid;place-items:center;font-size:17px}.methn{flex:1;min-width:150px;display:grid;gap:2px}
 .methods>p{padding:10px 12px}
 .acch{margin:0;font-size:15px}
+
+/* Setup walkthrough and Home helpers */
+.setup{z-index:85;align-items:start}
+.setupbox{max-width:560px;padding:8px 0 40px}
+.setupbox .brand h1{font-size:22px}
+.sdots{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.sdots li{border-top:4px solid var(--line);padding-top:6px;font-size:12px;color:var(--muted)}
+.sdots li.done{border-color:var(--accent);opacity:.75}.sdots li.on{border-color:var(--accent);color:var(--ink);font-weight:600}
+.sseg{flex-wrap:wrap}
+.flabel{font-size:13px;font-weight:600}
+.snav{display:flex;justify-content:space-between;gap:10px;margin-top:4px}.snav .btn{width:auto;min-width:110px}
+.sbills{display:grid;gap:8px}
+.sbill{display:grid;grid-template-columns:1fr 150px;gap:10px;align-items:center}
+.sbill label{font-size:14px}
+.stot,.srow{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding-top:10px;border-top:1px solid var(--line)}
+.ssum{display:grid;gap:10px}.srow{border-top:0;padding-top:0}.srow.big{border-top:1px solid var(--line);padding-top:10px;font-size:18px}
+.stips ul{margin:6px 0 0;padding-left:20px;display:grid;gap:4px}
+.checklist{margin-bottom:16px;display:grid;gap:10px}
+.clhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.clhead h3{margin:0}
+.checklist ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.checklist li{display:flex;align-items:center;gap:10px}
+.checklist li.ok{color:var(--muted);text-decoration:line-through}
+.clmark{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);display:inline-grid;place-items:center;font-size:12px;flex:none}
+.checklist li.ok .clmark{background:var(--accent);border-color:var(--accent);color:#fff;text-decoration:none}
+.checklist .linkbtn{padding:0;font-size:15px;text-align:left}
+.exbanner{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;border-left:4px solid var(--accent)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.ovmore{display:flex;justify-content:center;margin-top:18px}
+@media (max-width:520px){.sbill{grid-template-columns:1fr 120px}}
 </style>
 
 <div class="wrap">
   <header class="top">
-    <div class="brand"><h1>Finance Planning</h1><span>budget &amp; expenses</span></div>
+    <div class="brand"><h1>Finance Planning</h1><span>budget &amp; spending</span></div>
     <div class="tabscroll"><nav class="tabs" aria-label="Views">
       <a href="#overview" id="tab-overview"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg><span>Overview</span></a>
       <a href="#plan" id="tab-plan"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M8 13.5h3M8 16.5h6"/></svg><span>Plan</span></a>
-      <a href="#expenses" id="tab-expenses"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6"/></svg><span>Expenses</span></a>
+      <a href="#expenses" id="tab-expenses"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6"/></svg><span>Spending</span></a>
       <a href="#income" id="tab-income"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5"/><path d="M4 16.5v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Income</span></a>
       <a href="#taxes" id="tab-taxes"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg><span>Taxes</span></a>
       <a href="#settings" id="tab-settings"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg><span>Settings</span></a>
@@ -465,7 +494,7 @@ footer.status{margin-top:26px;color:var(--muted);font-size:12px;text-align:cente
     <div class="field"><label for="f-note">Note</label><input type="text" id="f-note" placeholder="e.g. Costco, LUMA bill" autocomplete="off"></div>
     <div class="field" id="f-freqbox"><label for="f-freq">How often</label><select id="f-freq"></select>
       <span class="hint" id="f-freqhint">Logged once, on this date.</span></div>
-    <p class="hint" id="f-plannote" hidden style="margin:0">This charge comes from a plan line. Changes here apply to this month only; edit the line on the Plan tab to change every month.</p>
+    <p class="hint" id="f-plannote" hidden style="margin:0">This charge comes from your plan. Changes here apply to this month only; edit the item on the Plan tab to change every month.</p>
     <div class="err" id="f-err" hidden></div>
     <div id="f-delzone" hidden></div>
     <div class="actions">
@@ -477,6 +506,7 @@ footer.status{margin-top:26px;color:var(--muted);font-size:12px;text-align:cente
   </form>
 </div>
 <div class="auth" id="auth" hidden></div>
+<div class="auth setup" id="setup" hidden role="dialog" aria-modal="true" aria-labelledby="setup-title"></div>
 <div class="cdialog" id="confirm" hidden><div class="cbox" id="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title"></div></div>
 <button class="editfab" id="editfab" type="button" aria-label="Edit plan" title="Edit plan" hidden><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>
 <button class="fab" id="donefab" type="button" hidden><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> Done editing</button>
@@ -528,6 +558,8 @@ function defaults(){
           {id:'p3',categoryId:'utilities',name:'Phone & internet',amount:350,include:true,auto:null}],
     bills:[],rules:[],goals:[],prefs:{upcomingDays:7,efMonths:6,efSaved:0}};
 }
+// A new account starts empty and opens the setup walkthrough.
+function starterConfig(){const c=defaults();c.income.paychecks=[];c.plan=[];c.prefs.setup='pending';c.prefs.ovMore=false;return c;}
 function num(v,d){const n=+v;return isFinite(n)?n:d;}
 function normalize(d){
   const D=defaults();const src=d.income||{};
@@ -1001,14 +1033,14 @@ function buildImportRows(t,opts){
   return out;
 }
 
-return {lineDates,parseCSV,detectTable,buildImportRows,merchantKey,suggestCategory,csvDate,csvMoney,BUCKET_COLORS,FREQS,FREQ,freqOf,everyToFreq,PERIODS,BUCKETS,REDUCTION,EXEMPTION,PALETTE,r2,uid,defaults,defaultTaxes,incomeBreakdown,yearSchedule,capFor,paycheckTotals,paycheckInYear,taxFor,taxDeductionYear,monthIncome,activeFrac,defaultCategories,defaultBrackets,normalize,migrate,calc,bracketTax,billDueIn,monthDiff,parseWorkbook,payDates,clampYMD,lineDay,semiDays};
+return {lineDates,parseCSV,detectTable,buildImportRows,merchantKey,suggestCategory,csvDate,csvMoney,BUCKET_COLORS,FREQS,FREQ,freqOf,everyToFreq,PERIODS,BUCKETS,REDUCTION,EXEMPTION,PALETTE,r2,uid,defaults,defaultTaxes,incomeBreakdown,yearSchedule,capFor,paycheckTotals,paycheckInYear,taxFor,taxDeductionYear,monthIncome,activeFrac,defaultCategories,defaultBrackets,normalize,migrate,calc,bracketTax,billDueIn,monthDiff,parseWorkbook,payDates,clampYMD,lineDay,semiDays,starterConfig,defaultCategories};
 })();
 if(typeof module!=='undefined')module.exports=CH;
 </script>
 
 <script>
 (function(){
-const {lineDates,parseCSV,detectTable,buildImportRows,merchantKey,suggestCategory,BUCKET_COLORS,FREQS,FREQ,freqOf,everyToFreq,PERIODS,BUCKETS,REDUCTION,EXEMPTION,PALETTE,r2,uid,defaults,defaultTaxes,incomeBreakdown,yearSchedule,capFor,paycheckTotals,paycheckInYear,taxFor,taxDeductionYear,normalize,migrate,calc,billDueIn,monthDiff,parseWorkbook,payDates,clampYMD,lineDay,semiDays}=CH;
+const {lineDates,parseCSV,detectTable,buildImportRows,merchantKey,suggestCategory,BUCKET_COLORS,FREQS,FREQ,freqOf,everyToFreq,PERIODS,BUCKETS,REDUCTION,EXEMPTION,PALETTE,r2,uid,defaults,defaultTaxes,incomeBreakdown,yearSchedule,capFor,paycheckTotals,paycheckInYear,taxFor,taxDeductionYear,normalize,migrate,calc,billDueIn,monthDiff,parseWorkbook,payDates,clampYMD,lineDay,semiDays,starterConfig,defaultCategories}=CH;
 const LS='chavos-v1';
 const $=s=>document.querySelector(s);
 const fmt=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
@@ -1123,7 +1155,7 @@ const store={
       if(uid!==this.uid)return;
       if(row&&row.data&&row.data.v===2)S.cfg=normalize(clone(row.data));
       else if(row&&row.data&&Object.keys(row.data).length){const m=migrate(clone(row.data));S.cfg=m.cfg;}
-      else{S.cfg=normalize(defaults());this.saveSettings();}
+      else{S.cfg=normalize(starterConfig());this.saveSettings();}
       S.expenses=exp;S.ready=true;
       setStatus('Saved to your account. Only you can see this data.');
       render();
@@ -1141,7 +1173,7 @@ const store={
   },
   local(){
     this.mode='local';
-    try{const raw=localStorage.getItem(LS);if(raw){const d=JSON.parse(raw);
+    try{const raw=localStorage.getItem(LS);if(!raw)S.cfg=normalize(starterConfig());if(raw){const d=JSON.parse(raw);
       if(d.cfg){S.cfg=normalize(d.cfg);S.expenses=d.expenses||{};}
       else{const m=migrate(d);S.cfg=m.cfg;S.expenses=d.expenses||{};this.applyRemap(m.remap);this.persistLocal();}
     }}catch(e){}
@@ -1164,7 +1196,7 @@ const store={
           if(d.v===2)S.cfg=normalize(clone(d));
           else if(!snap.metadata.fromCache&&!this.migrated){this.migrated=true;const m=migrate(clone(d));S.cfg=m.cfg;pendingRemap=m.remap;this.saveSettings();}
         }
-      }else if(!snap.metadata.fromCache&&!this.migrated){this.migrated=true;this.saveSettings();}
+      }else if(!snap.metadata.fromCache&&!this.migrated){this.migrated=true;S.cfg=normalize(starterConfig());this.saveSettings();}
       gotS=true;ready();render();
     },onErr);
     this.expCol.onSnapshot(snap=>{const m={};snap.docs.forEach(d=>{m[d.id]=clone(d.data()||{});});S.expenses=m;gotE=true;ready();render();},onErr);
@@ -1261,6 +1293,7 @@ function render(){
   if(fid){const el=document.getElementById(fid);if(el){if(fval!=null)el.value=fval;el.focus({preventScroll:true});if(fsel)try{el.setSelectionRange(fsel[0],fsel[1]);}catch(e){}}}
   window.scrollTo(0,y);
   showActiveTab();
+  if(S.ready&&S.cfg.prefs.setup==='pending')showSetup();
 }
 
 // ----- Month -----
@@ -1271,8 +1304,8 @@ function expSwitch(){
     if(m==='year')view.year=+view.month.slice(0,4);
     else if(+view.month.slice(0,4)!==view.year)view.month=view.year===new Date().getFullYear()?mk(new Date()):view.year+'-12';
     location.hash='#'+m;};
-  return h('div',{class:'exphead'},h('h2',{},'Expenses'),
-    h('div',{class:'seg',role:'tablist','aria-label':'Expenses view'},
+  return h('div',{class:'exphead'},h('h2',{},'Spending'),
+    h('div',{class:'seg',role:'tablist','aria-label':'Spending view'},
       [['month','Month'],['year','Year']].map(([k,l])=>h('button',{type:'button',role:'tab','aria-selected':String(mode===k),class:mode===k?'on':'',onclick:()=>go(k)},l))));
 }
 function vMonth(){
@@ -1345,7 +1378,7 @@ function vMonth(){
   });
   root.append(h('div',{class:'cols'},
     h('section',{class:'panel'},h('h3',{},'By category'),cats),
-    h('section',{class:'panel'},h('h3',{},h('span',{},view.filter?catOf(view.filter).name:'Expenses'),view.filter?h('button',{class:'linkbtn',onclick:()=>{view.filter=null;render();}},'Show all'):null),list)));
+    h('section',{class:'panel'},h('h3',{},h('span',{},view.filter?catOf(view.filter).name:'Spending'),view.filter?h('button',{class:'linkbtn',onclick:()=>{view.filter=null;render();}},'Show all'):null),list)));
   return root;
 }
 
@@ -1405,7 +1438,7 @@ function vYear(){
   segs.sort((a,b)=>b.value-a.value);
   root.append(h('div',{class:'stack',style:'margin-top:18px'},
     h('div',{class:'card'},h('h3',{},'Spending by month'),h('div',{class:'tbl'},bars(months,C.plannedTotal))),
-    h('div',{class:'card'},h('h3',{},'Expenses by category'),total>0?h('div',{class:'chartwrap'},donut(segs,'Total',money0(total)),legend(segs,total)):h('div',{class:'empty'},h('b',{},'No expenses logged in '+y),'Add expenses in the Month view, or import your spreadsheet below.')),
+    h('div',{class:'card'},h('h3',{},'Spending by category'),total>0?h('div',{class:'chartwrap'},donut(segs,'Total',money0(total)),legend(segs,total)):h('div',{class:'empty'},h('b',{},'No expenses logged in '+y),'Add expenses in the Month view, or import your spreadsheet below.')),
     total>0?h('div',{class:'card'},h('h3',{},'Actual vs. planned'),catTable(byCat,monthsElapsed)):null,
     importCard()));
   return root;
@@ -1495,7 +1528,7 @@ async function csvRun(){
 function vBankImport(){
   const root=h('div');
   root.append(h('div',{class:'pagehead'},
-    h('a',{href:'#month',class:'linkbtn',style:'padding:0;text-decoration:none'},'← Expenses'),
+    h('a',{href:'#month',class:'linkbtn',style:'padding:0;text-decoration:none'},'← Spending'),
     h('h2',{style:'margin-top:6px'},'Import bank transactions'),
     h('p',{},'Bring in a CSV file downloaded from your bank or card. Finance Planning spots the columns, suggests a category for each transaction, and skips anything you already imported.')));
   const st=csvState;
@@ -1548,7 +1581,7 @@ function vBankImport(){
   const list=h('div',{class:'list csvlist'});
   rows.forEach(r=>{
     const on=csvIncluded(r),c=catOf(st.cat[r.id]);
-    const tag=r.dup?h('span',{class:'pill auto'},'Already imported'):r.planMatch?h('span',{class:'pill auto',title:'A plan line already adds this charge'},'In plan: '+r.planMatch):!r.out?h('span',{class:'pill auto'},'Money in'):r.skipReason?h('span',{class:'pill auto'},r.skipReason):null;
+    const tag=r.dup?h('span',{class:'pill auto'},'Already imported'):r.planMatch?h('span',{class:'pill auto',title:'A plan item already adds this charge'},'In plan: '+r.planMatch):!r.out?h('span',{class:'pill auto'},'Money in'):r.skipReason?h('span',{class:'pill auto'},r.skipReason):null;
     list.append(h('div',{class:'csvrow'+(on?'':' off')},
       h('input',{type:'checkbox',class:'chk',id:'ci-'+r.id,checked:on,disabled:r.dup,'aria-label':'Import '+r.desc,onchange:e=>{st.include[r.id]=e.target.checked;render();}}),
       h('div',{class:'cdesc'},h('b',{},r.desc||'(no description)'),h('small',{},fmtDate(r.date),tag?' ':'',tag)),
@@ -1636,7 +1669,7 @@ function backupCard(){
     card.append(h('p',{style:'margin:0'},'From ',h('b',{},st.fileName),st.backup.exportedAt?' (exported '+fmtDate(st.backup.exportedAt.slice(0,10))+')':'',':'),
       h('ul',{},h('li',{},Object.keys(b.expenses).length+' expenses'),
         h('li',{},((c.income&&c.income.paychecks)||[]).length+' paychecks, '+((c.income&&c.income.bonuses)||[]).length+' bonuses, '+((c.income&&c.income.taxDeductions)||[]).length+' tax deductions'),
-        h('li',{},((c.plan)||[]).length+' plan lines in '+((c.categories)||[]).length+' categories')),
+        h('li',{},((c.plan)||[]).length+' plan items in '+((c.categories)||[]).length+' categories')),
       h('div',{class:'confirm'},h('span',{style:'flex:1;min-width:200px'},'Restoring replaces everything currently in Finance Planning with this backup. Download a backup first if you might want today’s data back.')),
       h('div',{class:'actions'},h('button',{class:'btn',type:'button',onclick:()=>{backupState=null;render();}},'Cancel'),h('button',{class:'btn danger',type:'button',onclick:runRestore},'Replace my data')));
     return card;
@@ -1663,7 +1696,7 @@ function loadXLSX(){
 function importCard(){
   const card=h('div',{class:'card importbox'},h('h3',{},'Import from Excel'));
   if(!importState){
-    card.append(h('p',{class:'hint',style:'margin:0'},'For bank or card CSV downloads, use Import from bank in Expenses → Month. This card brings in your budget workbook. Finance Planning reads the year tabs (2024, 2025…), Monthly Expenses, Yearly & Other, and Income. Importing the same file again updates the same rows instead of duplicating them.'));
+    card.append(h('p',{class:'hint',style:'margin:0'},'For bank or card CSV downloads, use Import from bank in Spending → Month. This card brings in your budget workbook. Finance Planning reads the year tabs (2024, 2025…), Monthly Expenses, Yearly & Other, and Income. Importing the same file again updates the same rows instead of duplicating them.'));
     const inp=h('input',{type:'file',id:'xlsx-file',accept:'.xlsx,.xlsm,.xls',style:'max-width:100%',onchange:async e=>{
       const f=e.target.files&&e.target.files[0];if(!f)return;
       importState={stage:'reading'};render();
@@ -1684,8 +1717,8 @@ function importCard(){
   const opt=(k,label,detail,enabled)=>h('label',{class:'check'},h('input',{type:'checkbox',id:'imp-'+k,checked:o[k]&&enabled,disabled:!enabled,onchange:e=>{o[k]=e.target.checked;}}),h('span',{},label,h('br'),h('span',{class:'hint'},detail)));
   card.append(h('p',{style:'margin:0'},'From ',h('b',{},st.fileName),':'),
     opt('expenses','Expense history',d.expenses.length?d.expenses.length+' expenses from '+d.years.join(', ')+'. Dated the 1st of each month, since the sheet has no days.':'No year tabs with expenses found.',d.expenses.length>0),
-    opt('plan','Monthly plan',d.plan&&d.plan.length?d.plan.length+' line items across your categories. Replaces your current plan lines.':'Monthly Expenses tab not found.',!!(d.plan&&d.plan.length)),
-    opt('bills','Irregular bills',d.bills&&d.bills.length?d.bills.length+' bills from Yearly & Other, added as plan lines with their frequency. Replaces bills imported before.':'Yearly & Other tab not found.',!!(d.bills&&d.bills.length)),
+    opt('plan','Monthly plan',d.plan&&d.plan.length?d.plan.length+' line items across your categories. Replaces your current plan items.':'Monthly Expenses tab not found.',!!(d.plan&&d.plan.length)),
+    opt('bills','Irregular bills',d.bills&&d.bills.length?d.bills.length+' bills from Yearly & Other, added as plan items with their frequency. Replaces bills imported before.':'Yearly & Other tab not found.',!!(d.bills&&d.bills.length)),
     opt('income','Income & tax settings',d.income?'Pay of '+money(d.income.paychecks[0].gross)+' '+PERIODS[d.income.paychecks[0].period].label.toLowerCase()+(d.years.length?' starting Jan 1, '+d.years[0]:'')+', '+d.income.paychecks[0].deductions.length+' deductions, '+d.income.taxes.length+' taxes, '+d.income.bonuses.length+' bonuses. Replaces your current paychecks.':'Income tab not found.',!!d.income),
     h('div',{class:'actions'},h('button',{class:'btn',onclick:()=>{importState=null;render();}},'Cancel'),h('button',{class:'btn primary',onclick:runImport},'Import')));
   return card;
@@ -1773,12 +1806,14 @@ function vOverview(){
   const due=S.cfg.plan.filter(b=>b.include!==false&&!b.auto&&FREQ[freqOf(b)].every>=2&&billDueIn(b,cm));
   const over=S.cfg.categories.map(c=>({c,spent:byCat[c.id]||0,bud:C.catPlanned[c.id]||0})).filter(r=>r.bud>0&&r.spent>r.bud+0.004);
   const root=h('div');
-  root.append(h('div',{class:'pagehead'},h('h2',{},'Overview'),h('p',{},monthLabel(cm)+' at a glance, with the year so far.')));
+  const P=S.cfg.prefs,more=P.ovMore!==false,netOnly=!!P.netOnly;
+  root.append(h('div',{class:'pagehead'},h('h2',{},'Overview'),h('p',{},monthLabel(cm)+' at a glance.')));
+  root.append(exampleBanner(),startChecklist());
   // summary
   root.append(h('div',{class:'summary'},
     h('h3',{class:'sumtitle'},'This Month'),
     h('div',{class:'lead'},
-      h('div',{},h('div',{class:'eyebrow'},'Left to spend'),h('div',{class:'big num'+(left<0?' neg':'')},money(left))),
+      h('div',{},h('div',{class:'eyebrow'},'Left to spend'),h('div',{class:'big num'+(left<0?' neg':'')},money(left)),h('div',{class:'hint',style:'margin-top:2px'},'Take-home this month minus what you’ve spent.')),
       h('div',{class:'stats four'},
         h('div',{class:'stat'},h('span',{class:'eyebrow'},'Net income'),h('b',{class:'num'},money(net))),
         h('div',{class:'stat'},h('span',{class:'eyebrow'},'Spent'),h('b',{class:'num'},money(spent))),
@@ -1788,7 +1823,7 @@ function vOverview(){
   // charts
   const segs=S.cfg.categories.map(c=>({label:c.name,value:C.catPlanned[c.id]||0,color:c.color})).filter(x=>x.value>0);
   if(C.remaining>0)segs.push({label:'Remaining',value:C.remaining,color:'var(--remain)'});
-  const util=h('div',{class:'card ovcard'},h('h3',{},'Net income utilization',h('a',{href:'#plan'},'Plan →')),
+  const util=h('div',{class:'card ovcard'},h('h3',{},'Where your take-home goes',h('a',{href:'#plan'},'Plan →')),
     net>0?h('div',{class:'chartwrap'},donut(segs,'Net / month',money0(net)),legend(segs,Math.max(net,C.plannedTotal))):h('p',{class:'hint'},'Add your pay in the Income tab to see this.'));
   root.append(upcomingCard());
   // Gross income split: taxes and other paycheck deductions count as needs, retirement as savings.
@@ -1798,20 +1833,20 @@ function vOverview(){
   if(gRem>0)gsegs.push({label:'Remaining',value:gRem,color:'var(--remain)'});
   const notes=[];if(taxes>0)notes.push(money(taxes)+' in taxes'+(otherDed>0?' and '+money(otherDed)+' in other paycheck deductions':'')+' count as needs');else if(otherDed>0)notes.push(money(otherDed)+' in paycheck deductions count as needs');
   if(ret>0)notes.push(money(ret)+' in retirement counts as savings');
-  const grossCard=h('div',{class:'card ovcard'},h('h3',{},'Gross income breakdown',h('a',{href:'#income'},'Income →')),
+  const grossCard=h('div',{class:'card ovcard'},h('h3',{},'Where your gross pay goes',h('a',{href:'#income'},'Income →')),
     gross>0?h('div',{class:'chartwrap'},donut(gsegs,'Gross / month',money0(gross)),legend(gsegs,Math.max(gross,gNeed+gSave+gFun))):h('p',{class:'hint'},'Add your pay in the Income tab to see this.'),
     gross>0&&notes.length?h('p',{class:'hint',style:'margin:10px 0 0'},notes.join('; ')+'.'):null,
     gross>0&&gRem<0?h('p',{class:'hint neg',style:'margin:6px 0 0'},'Your plan and deductions are '+money(-gRem)+' more than your gross income.'):null);
-  root.append(h('div',{class:'ovgrid'},util,grossCard));
+  root.append(h('div',{class:'ovgrid'},util,more&&!netOnly?grossCard:null));
   // tab summaries
   const kv=(pairs)=>h('dl',{class:'kv'},pairs.filter(Boolean).flatMap(([k,v,cls])=>[h('dt',{},k),h('dd',{class:'num '+(cls||'')},v)]));
-  const monthCard=h('div',{class:'card ovcard'},h('h3',{},'This month',h('a',{href:'#month'},'Expenses →')),
+  const monthCard=h('div',{class:'card ovcard'},h('h3',{},'This month',h('a',{href:'#month'},'Spending →')),
     kv([['Expenses logged',String(inst.length)],['Spent',money(spent)],['Left to spend',money(left),left<0?'neg':''],['Over budget',over.length?over.length+' categor'+(over.length>1?'ies':'y'):'None',over.length?'neg':'']]),
     due.length?h('div',{class:'ovlist'},h('span',{class:'eyebrow'},'Bills due this month'),...due.map(b=>h('div',{},h('span',{class:'dot',style:'background:'+catOf(b.categoryId).color}),h('span',{class:'n'},b.name),h('span',{class:'num'},money(b.amount))))):null);
-  root.append(h('div',{class:'ovgrid'},monthCard));
+  if(more)root.append(h('div',{class:'ovgrid'},monthCard));
   // year so far, with taxes
   const yPlan=C.plannedTotal*ym;
-  root.append(h('div',{class:'summary',style:'margin-top:18px'},
+  if(more)root.append(h('div',{class:'summary',style:'margin-top:18px'},
     h('h3',{class:'sumtitle'},cy+' So Far'),
     h('div',{class:'lead'},
       h('div',{},h('div',{class:'eyebrow'},'Spent'),h('div',{class:'big num'+(ySpent>yPlan&&yPlan>0?' neg':'')},money(ySpent))),
@@ -1822,18 +1857,23 @@ function vOverview(){
         h('div',{class:'stat'},h('span',{class:'eyebrow'},'Left after spending'),h('b',{class:'num'+(yInc.net-ySpent<0?' neg':'')},money(yInc.net-ySpent))))),
     h('div',{class:'meter'},h('i',{class:ySpent>yPlan?'over':'',style:'width:'+(yPlan>0?Math.min(ySpent/yPlan,1)*100:0)+'%'})),
     h('div',{class:'hint'},yPlan>0?(ySpent>yPlan?'Over plan to date by '+money(ySpent-yPlan):Math.round(ySpent/yPlan*100)+'% of plan to date spent'):''),
-    h('div',{class:'sumsub'},
+    netOnly?null:h('div',{class:'sumsub'},
       h('div',{class:'sumsubhead'},h('span',{class:'eyebrow'},'Taxes '+cy),h('a',{href:'#taxes',class:'sumlink'},'Taxes →')),
       h('div',{class:'stats four'},
         h('div',{class:'stat'},h('span',{class:'eyebrow'},'Estimated tax'),h('b',{class:'num'},money(T0.taxDue))),
         h('div',{class:'stat'},h('span',{class:'eyebrow'},'Withheld'),h('b',{class:'num'},money(T0.withheld))),
         h('div',{class:'stat'},h('span',{class:'eyebrow'},T0.outOfPocket>=0?'To pay at filing':'Estimated refund'),h('b',{class:'num '+(T0.outOfPocket>0?'neg':'pos')},money(Math.abs(T0.outOfPocket)))),
         T0.outOfPocket>0?h('div',{class:'stat'},h('span',{class:'eyebrow'},'Set aside monthly'),h('b',{class:'num'},money(T0.outOfPocket/12))):null))));
+  root.append(h('div',{class:'ovmore'},h('button',{type:'button',class:'btn',onclick:()=>{P.ovMore=!more;save();}},more?'Show fewer details':'Show more details: this month and '+cy+' so far')));
   return root;
 }
 function vPlan(){
   const root=h('div');
-  root.append(h('div',{class:'pagehead'},h('h2',{},'Plan & bills'),h('p',{},'What you expect to spend, line by line. Pick how often each line happens; amounts are converted to a monthly figure for the budget. Lines that come every few months or once a year also remind you in the month they’re due. Untick a line to keep it listed without counting it.')));
+  root.append(h('div',{class:'pagehead'},h('h2',{},'Plan & bills'),h('p',{},'What you expect to spend each month: bills, budgets and savings. Items that come less often, like a yearly insurance bill, are spread into a monthly amount so you set money aside for them. Untick an item to keep it listed without counting it.')));
+  if(!S.cfg.plan.length&&!view.planEdit)root.append(h('div',{class:'card empty',style:'margin-bottom:16px;text-align:left'},h('b',{},'Your plan is empty'),
+    h('p',{style:'margin:4px 0 12px'},'Add what you expect to pay each month: rent, phone, groceries, car, subscriptions. Use the Add row in a category below, or:'),
+    h('div',{class:'actions',style:'justify-content:flex-start;flex-wrap:wrap'},h('button',{type:'button',class:'btn primary',onclick:()=>openSheet(null,{freq:'monthly'})},'+ Add a bill or budget'),
+      h('button',{type:'button',class:'btn',onclick:()=>startSetupAgain()},'Use the setup guide'))));
   const rem=C.remaining;
   root.append(h('div',{class:'summary'},
     h('div',{class:'lead'},
@@ -1861,11 +1901,11 @@ function vPlan(){
   if(rem>0)segs.push({label:'Remaining',value:rem,color:'var(--remain)'});
   const bsegs=[['need','Needs'],['want','Fun'],['saving','Savings']].map(([k,label])=>({label,value:C.buckets[k]||0,color:BUCKET_COLORS[k]}));
   root.append(h('div',{class:'ovgrid'},
-    h('div',{class:'card'},h('h3',{},'Net income utilization'),
+    h('div',{class:'card'},h('h3',{},'Where your take-home goes'),
       C.mNet>0?h('div',{class:'chartwrap'},donut(segs,'Net / month',money0(C.mNet)),legend(segs,Math.max(C.mNet,C.plannedTotal))):h('p',{class:'hint'},'Add your pay in the Income tab to see this.')),
     h('div',{class:'card'},h('h3',{},'Needs vs. fun vs. savings'),
-      C.plannedTotal>0?h('div',{class:'chartwrap'},donut(bsegs,'Planned / month',money0(C.plannedTotal)),legend(bsegs,C.plannedTotal)):h('p',{class:'hint'},'Add plan lines to see how they split.'),
-      h('p',{class:'hint',style:'margin:10px 0 0'},'Each category counts toward one group. Change it with the ✏️ edit button.'))));
+      C.plannedTotal>0?h('div',{class:'chartwrap'},donut(bsegs,'Planned / month',money0(C.plannedTotal)),legend(bsegs,C.plannedTotal)):h('p',{class:'hint'},'Add items to your plan to see how they split.'),
+      h('p',{class:'hint',style:'margin:10px 0 0'},'Needs are must-pays like rent and groceries. Fun is the nice-to-haves. Savings is money you set aside. Each category counts toward one group; change it with the ✏️ edit button.'))));
 
   const ed=!!view.planEdit;
   const card=h('div',{class:'catlist'+(ed?' editing':''),style:'margin-top:28px'},h('h3',{class:'catlisthead'},'Categories & lines'),
@@ -1898,7 +1938,7 @@ function efProgress(target){
     h('div',{class:'meter'},h('i',{style:'width:'+Math.min(st.pct,1)*100+'%'})),
     h('p',{class:'hint',style:'margin:0'},(st.left>0&&target>0?money(st.left)+' left to save. ':'')+st.notes.join(' ')),
     st.left>0&&target>0&&!lines.length?addLineBtn('Emergency fund',st.need,'Add an emergency fund line to see how long it will take →'):null,
-    st.showUpd?updLineBtn(lines,st.monthly,st.need,'Update monthly plan line to '+money(Math.ceil(st.need))+' →'):null);
+    st.showUpd?updLineBtn(lines,st.monthly,st.need,'Update monthly plan item to '+money(Math.ceil(st.need))+' →'):null);
 }
 // Shared status for anything you save toward: progress, pace from plan lines, and what a date needs.
 function fundStatus(target,saved,date,lines,reachedNote){
@@ -1911,7 +1951,7 @@ function fundStatus(target,saved,date,lines,reachedNote){
     if(hasDate){const m=monthsUntil(date);
       if(m<0||(m===0&&date<today())){pill=h('span',{class:'pill over'},'Past due');notes.push('The target date has passed with '+money(left)+' to go.');}
       else{need=left/Math.max(1,m);notes.push('Save '+money(need)+' a month to reach it by '+fmtDate(date)+'.');}}
-    if(lines.length&&monthly<=0)notes.push('Its plan line has no amount yet.');
+    if(lines.length&&monthly<=0)notes.push('Its plan item has no amount yet.');
     if(monthly>0){const n=Math.ceil(left/monthly),d=new Date();d.setMonth(d.getMonth()+n);
       notes.push('At '+money(monthly)+' a month from your plan, about '+monthsWord(n)+' to go (around '+d.toLocaleDateString('en-US',{month:'long',year:'numeric'})+').');
       if(hasDate&&!pill)pill=n<=Math.max(1,monthsUntil(date))?h('span',{class:'pill rec'},'On track'):h('span',{class:'pill over'},'Behind');}
@@ -1949,8 +1989,8 @@ function goalCard(g){
       h('div',{class:'efpct num'},h('b',{class:st.pct>=1?'pos':''},Math.min(999,Math.round(st.pct*100))+'%'),h('small',{class:'hint'},st.left>0?money(st.left)+' to go':'complete'))),
     h('div',{class:'meter'},h('i',{style:'width:'+Math.min(st.pct,1)*100+'%'})),
     st.notes.length?h('p',{class:'hint',style:'margin:0'},st.notes.join(' ')):null,
-    st.left>0&&!lines.length?addLineBtn(g.name,st.need,'Add a monthly plan line for this goal →'):null,
-    st.showUpd?updLineBtn(lines,st.monthly,st.need,'Update monthly plan line for this goal to '+money(Math.ceil(st.need))+' →'):null);
+    st.left>0&&!lines.length?addLineBtn(g.name,st.need,'Add a monthly plan item for this goal →'):null,
+    st.showUpd?updLineBtn(lines,st.monthly,st.need,'Update monthly plan item for this goal to '+money(Math.ceil(st.need))+' →'):null);
 }
 function goalDialog(g){
   const ov=$('#confirm'),box=$('#confirm-box');
@@ -1973,12 +2013,12 @@ function goalDialog(g){
     h('div',{class:'actions'},
       g?h('button',{type:'button',class:'btn ghost',style:'margin-right:auto',onclick:()=>{close();
         const gl=goalLine(g);let cb=null;
-        const extra=gl.length?h('label',{class:'check',style:'margin-top:4px'},cb=h('input',{type:'checkbox',id:'g-delline'}),h('span',{},'Delete monthly plan line for this goal',h('br'),h('span',{class:'hint'},gl.map(l=>l.name+' ('+money(C.lineValue(l))+' / month)').join(', ')))):null;
+        const extra=gl.length?h('label',{class:'check',style:'margin-top:4px'},cb=h('input',{type:'checkbox',id:'g-delline'}),h('span',{},'Delete monthly plan item for this goal',h('br'),h('span',{class:'hint'},gl.map(l=>l.name+' ('+money(C.lineValue(l))+' / month)').join(', ')))):null;
         confirmDialog({title:'Delete “'+g.name+'”?',body:'The goal and its saved amount are removed.',extra,actions:[{label:'Delete',kind:'danger',onClick:()=>{
           const rmLines=!!(cb&&cb.checked),ids=new Set(gl.map(l=>l.id));
           S.cfg.goals=S.cfg.goals.filter(x=>x.id!==g.id);
           if(rmLines)S.cfg.plan=S.cfg.plan.filter(l=>!ids.has(l.id));
-          save();toast(rmLines?'Goal and its plan line deleted':'Goal deleted');}}]});}},'Delete'):null,
+          save();toast(rmLines?'Goal and its plan item deleted':'Goal deleted');}}]});}},'Delete'):null,
       h('button',{type:'button',class:'btn',onclick:close},'Cancel'),h('button',{type:'button',class:'btn primary',onclick:submit},g?'Save':'Add goal')));
   [name,amtIn,date].forEach(x=>x.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();submit();}}));
   ov.hidden=false;setTimeout(()=>name.focus(),20);
@@ -2037,13 +2077,13 @@ function dateControl(l){
 function lineSub(l,v){
   const f=FREQ[freqOf(l)],sched=lineSchedule(l);
   const parts=[];if(f.factor!==1)parts.push('≈ '+money(v)+' / month');
-  parts.push(l.due&&sched?sched.charAt(0).toUpperCase()+sched.slice(1)+' · added to Month on its date':'Pick when it’s charged');
+  parts.push(l.due&&sched?sched.charAt(0).toUpperCase()+sched.slice(1)+' · added to Spending on its date':'Pick when it’s charged');
   const ed=!!view.planEdit;
   return h('div',{class:'sub2'},
     ed?h('span',{class:'firstpaid'},h('label',{for:'pfp-'+l.id,class:'hint'},'First paid on'),
       h('input',{type:'date',id:'pfp-'+l.id,value:/^\d{4}-\d{2}-\d{2}$/.test(l.due||'')?l.due:'','aria-label':'First paid on for '+l.name,style:'width:auto',
         onchange:e=>{l.due=e.target.value;delete l.day;save();}})):null,
-    h('label',{class:'tag',style:'color:var(--ink)'},chk('pp-'+l.id,!!l.post,x=>{l.post=x;save();if(x)setTimeout(()=>{const el=document.querySelector('[id^="pd-'+l.id+'"]');if(el)el.focus();},0);},'Add '+l.name+' to Month automatically'),'Add to Month'),
+    h('label',{class:'tag',style:'color:var(--ink)'},chk('pp-'+l.id,!!l.post,x=>{l.post=x;save();if(x)setTimeout(()=>{const el=document.querySelector('[id^="pd-'+l.id+'"]');if(el)el.focus();},0);},'Add '+l.name+' to Spending automatically'),'Auto-add to Spending'),
     l.post?dateControl(l):null,
     l.post?h('span',{class:'hint num'},parts.join(' · ')):null);
 }
@@ -2101,14 +2141,14 @@ function catSection(c,ci,cn){
     const target=S.cfg.categories.find(x=>x.id!==c.id&&/^others?$/i.test(x.name))||S.cfg.categories.find(x=>x.id!==c.id);
     let cb=null;const n=lines.length;
     const extra=n?h('label',{class:'check',style:'margin-top:4px'},cb=h('input',{type:'checkbox',id:'cat-dellines'}),
-      h('span',{},'Also delete its '+(n===1?'plan line':n+' plan lines'),h('br'),h('span',{class:'hint'},lines.map(l=>l.name).join(', ')))):null;
-    confirmDialog({title:'Delete category '+c.name+'?',body:(used?'Its '+(used===1?'expense moves':used+' expenses move')+' to '+target.name+'. ':'')+(n?'Its plan lines move to '+target.name+' unless you delete them below.':'This can’t be undone.'),extra,
+      h('span',{},'Also delete its '+(n===1?'plan item':n+' plan items'),h('br'),h('span',{class:'hint'},lines.map(l=>l.name).join(', ')))):null;
+    confirmDialog({title:'Delete category '+c.name+'?',body:(used?'Its '+(used===1?'expense moves':used+' expenses move')+' to '+target.name+'. ':'')+(n?'Its plan items move to '+target.name+' unless you delete them below.':'This can’t be undone.'),extra,
       actions:[{label:'Delete',kind:'danger',onClick:()=>{
         const rm=!!(cb&&cb.checked);
         for(const [id,e] of Object.entries(S.expenses))if(e&&e.categoryId===c.id)store.putExpense(id,{...e,categoryId:target.id});
         if(rm)S.cfg.plan=S.cfg.plan.filter(l=>l.categoryId!==c.id);else S.cfg.plan.forEach(l=>{if(l.categoryId===c.id)l.categoryId=target.id;});
         S.cfg.categories=S.cfg.categories.filter(x=>x.id!==c.id);if(view.filter===c.id)view.filter=null;
-        save();toast('Deleted “'+c.name+'”'+(rm&&n?' and its plan lines':'')+((used||(!rm&&n))?'; items moved to “'+target.name+'”':''));}}]});}},'×'):null;
+        save();toast('Deleted “'+c.name+'”'+(rm&&n?' and its plan items':'')+((used||(!rm&&n))?'; items moved to “'+target.name+'”':''));}}]});}},'×'):null;
   if(ed)sec.append(h('div',{class:'catedit'},arrows(c.name,()=>moveCat(ci,-1),()=>moveCat(ci,1),ci>0,ci<cn-1),
     delCat?h('span',{class:'tag'},'Delete category',delCat):null));
   sec.append(h('div',{class:'cathead'},
@@ -2215,7 +2255,7 @@ function taxLines(){return S.cfg.plan.filter(l=>l.include!==false&&!l.auto&&/\bt
 function taxLineLink(T,cy){
   if(T.year!==cy||!(T.outOfPocket>0))return null;
   const need=T.outOfPocket/12,lines=taxLines(),monthly=lines.reduce((a,l)=>a+C.lineValue(l),0);
-  if(!lines.length)return addLineBtn('Tax set-aside',need,'Add a monthly plan line for taxes →');
+  if(!lines.length)return addLineBtn('Tax set-aside',need,'Add a monthly plan item for taxes →');
   if(Math.abs(Math.ceil(need)-monthly)>=1)return updLineBtn(lines,monthly,need,'Your '+lines[0].name+' line is '+money(monthly)+' a month. Update to '+money(Math.ceil(need))+' →');
   return h('p',{class:'hint',style:'margin:0'},'Your '+lines[0].name+' line covers it.');
 }
@@ -2272,7 +2312,8 @@ function settingsSections(){
   return [
     store.mode==='cloud'?{id:'account',title:'Account',desc:'How you sign in, and your account.',render:()=>[accountCard()]}:null,
     {id:'retirement',title:'Retirement accounts',desc:'The most you can put into retirement accounts each year. Deductions marked as retirement savings on your paychecks stop once it’s reached.',render:()=>[retireBox(I)]},
-    {id:'auto',title:'Automatic expenses',desc:'Plan lines with Add to Month ticked add themselves to Expenses on their dates, starting from the date each line was set up.',render:()=>[backfillCard()]},
+    {id:'auto',title:'Automatic expenses',desc:'Plan items with Auto-add ticked add themselves to Spending on their dates, starting from the date each line was set up.',render:()=>[backfillCard()]},
+    {id:'setup',title:'Setup guide',desc:'Walk through pay, monthly costs and savings again. It replaces your paychecks and plan items; spending, categories and goals stay.',render:()=>[h('div',{class:'card'},h('button',{type:'button',class:'btn',onclick:()=>startSetupAgain()},'Run the setup guide'))]},
     {id:'appearance',title:'Appearance',desc:'Choose light or dark, or follow your device.',render:()=>[themeCard()]},
     {id:'overview',title:'Overview',desc:'What the Overview tab shows.',render:()=>[upcomingSettings()]},
     {id:'backup',title:'Backup & restore',desc:'Save all your data to a file, or load it from one.',render:()=>[backupCard()]}
@@ -2312,7 +2353,7 @@ function backfillCard(){
   const card=h('div',{class:'card stack'},h('h3',{},'Fill in earlier months'),
     h('div',{class:'field',style:'max-width:220px'},h('label',{for:'bf-start'},'Start from'),
       h('input',{type:'date',id:'bf-start',value:st.start,max:today(),onchange:e=>{if(e.target.value){st.start=e.target.value;render();}}})));
-  if(!occ.length){card.append(h('p',{class:'hint',style:'margin:0'},'Nothing to add. Every line with Add to Month already starts on or before '+fmtDate(st.start)+', or none has it ticked.'));return card;}
+  if(!occ.length){card.append(h('p',{class:'hint',style:'margin:0'},'Nothing to add. Every item with Auto-add already starts on or before '+fmtDate(st.start)+', or none has it ticked.'));return card;}
   const byLine={};add.forEach(o=>{byLine[o.line.id]=byLine[o.line.id]||{l:o.line,n:0};byLine[o.line.id].n++;});
   card.append(h('p',{style:'margin:0'},'Adds '+add.length+' charge'+(add.length===1?'':'s')+' ('+money(total)+') from '+fmtDate(st.start)+' through today:'),
     h('div',{class:'uplist'},Object.values(byLine).map(({l,n})=>{const c=catOf(l.categoryId);return h('div',{class:'uprow'},h('span',{class:'dot',style:'background:'+c.color}),h('span',{class:'n'},l.name,h('small',{},n+' × '+money(l.amount)+' · '+lineSchedule(l))),h('span',{class:'num'},money(n*l.amount)));})),
@@ -2323,7 +2364,7 @@ function backfillCard(){
       for(const o of dup)await store.putExpense(o.id,{planSkip:true,fromPlan:o.line.id,date:o.date,createdAt:Date.now()});
       render();toast('Added '+add.length+' charge'+(add.length===1?'':'s')+' to earlier months');
     }},'Add '+add.length+' charge'+(add.length===1?'':'s'))),
-    h('p',{class:'hint',style:'margin:0'},'This moves each line’s start back to its first date in this range. To undo one month, open the charge in Expenses and remove it.'));
+    h('p',{class:'hint',style:'margin:0'},'This moves each line’s start back to its first date in this range. To undo one month, open the charge in Spending and remove it.'));
   return card;
 }
 function themeCard(){
@@ -2363,6 +2404,7 @@ function vIncome(){
   const Byr=incomeBreakdown(S.cfg,Array.from({length:12},(_,i)=>Y+'-'+String(i+1).padStart(2,'0')));
   const root=h('div');
   root.append(h('div',{class:'pagehead'},h('h2',{},'Income'),h('p',{},'Add each paycheck with the dates it applies. Finance Planning only counts a paycheck while it’s active, so a raise or a new job is a new paycheck that starts on its date.')));
+  root.append(netOnlyNote('income'));
   root.append(h('div',{class:'nav'},
     h('button',{class:'iconbtn','aria-label':'Previous year',onclick:()=>{view.incomeYear--;render();}},'‹'),
     h('button',{class:'iconbtn','aria-label':'Next year',onclick:()=>{view.incomeYear++;render();}},'›'),
@@ -2378,7 +2420,7 @@ function vIncome(){
   const left=h('div',{class:'stack'});
   const shown=sortedPaychecks(I).filter(pc=>paycheckInYear(pc,Y));
   shown.forEach(pc=>left.append(paycheckCard(pc,I)));
-  if(!shown.length)left.append(h('div',{class:'card empty'},h('b',{},'No paychecks in '+Y),I.paychecks.length?'Your other paychecks are outside this year. Use the arrows to switch years, or add one below.':'Add your first paycheck below.'));
+  if(!shown.length)left.append(h('div',{class:'card empty'},h('b',{},'No paychecks in '+Y),I.paychecks.length?'Your other paychecks are outside this year. Use the arrows to switch years, or add one below.':'Add your first paycheck below to see your take-home pay and taxes. Not sure of the details? Start with the amount on your last pay stub.'));
   const hidden=I.paychecks.length-shown.length;
   left.append(h('div',{class:'card'},h('h3',{},'Add a paycheck'),
     h('p',{class:'hint',style:'margin:0 0 10px'},'The new paycheck copies the deductions of the most recent one and starts '+(isCur?'today':'on Jan 1, '+Y)+'. For a raise, also set an end date on the old paycheck.'+(hidden?' '+hidden+' paycheck'+(hidden>1?'s are':' is')+' outside '+Y+' and hidden.':'')),
@@ -2411,7 +2453,7 @@ function vIncome(){
   const bm={gross:0,tax:0};I.bonuses.forEach(b=>{if((b.date||'').slice(0,7)===cm){bm.gross+=+b.amount||0;}});bm.tax=bm.gross*bpct/100;
   const dn=[...new Set([...Object.keys(Byr.ded),...(isCur?Object.keys(Bm.ded):[])])],tn=[...new Set([...Object.keys(Byr.tax),...(isCur?Object.keys(Bm.tax):[])])];
   const span=isCur?3:2;
-  right.append(h('div',{class:'card'},h('h3',{},'Gross to net'),h('div',{class:'tbl'},h('table',{},
+  right.append(h('div',{class:'card'},h('h3',{},'From pay to take-home'),h('div',{class:'tbl'},h('table',{},
     h('thead',{},h('tr',{},h('th',{},'All paychecks'),isCur?h('th',{},'This month'):null,h('th',{},String(Y)))),
     h('tbody',{},row('Gross income',Bm.gross,Byr.gross),
       ...dn.map(k=>row(k,-(Bm.ded[k]||0),-(Byr.ded[k]||0),'sub')),row('Deductions',-Bm.dedTotal,-Byr.dedTotal),
@@ -2477,6 +2519,7 @@ function vTaxes(){
   const I=S.cfg.income,cy=new Date().getFullYear(),T=C.T,Y=T.year,isCur=Y===cy;
   const root=h('div');
   root.append(h('div',{class:'pagehead'},h('h2',{},'Taxes'),h('p',{},'Payroll taxes come out of every paycheck. The estimate below works out your Puerto Rico income tax for the year and what you may owe when you file.')));
+  if(S.cfg.prefs.netOnly){root.append(netOnlyNote('taxes'));return root;}
   root.append(h('div',{class:'nav'},
     h('button',{class:'iconbtn','aria-label':'Previous year',onclick:()=>{view.taxYear=Y-1;render();}},'‹'),
     h('button',{class:'iconbtn','aria-label':'Next year',onclick:()=>{view.taxYear=Y+1;render();}},'›'),
@@ -2557,7 +2600,7 @@ function openSheet(id,pre){
 }
 function closeSheet(){$('#overlay').hidden=true;editing=null;}
 function freqHint(){const v=$('#f-freq').value;
-  $('#f-freqhint').textContent=v==='once'?'Logged once, on this date.':'Adds a '+FREQ[v].label.toLowerCase()+' line to your plan, with this date as the first payment. It adds itself to Expenses on each date.';
+  $('#f-freqhint').textContent=v==='once'?'Logged once, on this date.':'Adds a '+FREQ[v].label.toLowerCase()+' line to your plan, with this date as the first payment. It adds itself to Spending on each date.';
   $('#f-datelabel').textContent=v==='once'?'Date':'First paid on';}
 $('#f-freq').addEventListener('change',freqHint);
 $('#f-ivu').addEventListener('click',()=>{const n=parseAmt($('#f-amount').value);if(isNaN(n)){toast('Enter the amount before tax first.');return;}$('#f-amount').value=(Math.round(n*1.115*100)/100).toFixed(2);});
@@ -2600,7 +2643,7 @@ $('#f-del').addEventListener('click',()=>{
   const id=editing,e=S.expenses[id]||planVirtual[id];if(!e)return;
   const what=(e.note||catOf(e.categoryId).name)+', '+money(e.amount);
   if(e.fromPlan){
-    confirmDialog({title:'Remove '+(e.note||'this charge')+' from '+monthLabel(e.date.slice(0,7))+'?',body:'Only this month’s charge goes away. The plan line stays and keeps adding itself in other months.',
+    confirmDialog({title:'Remove '+(e.note||'this charge')+' from '+monthLabel(e.date.slice(0,7))+'?',body:'Only this month’s charge goes away. The plan item stays and keeps adding itself in other months.',
       actions:[{label:'Remove',kind:'danger',onClick:()=>{store.putExpense(id,{planSkip:true,fromPlan:e.fromPlan,date:e.date,createdAt:Date.now()});closeSheet();render();toast('Removed for '+monthLabel(e.date.slice(0,7)));}}]});
   }else if(e.recurring){
     const start=e.date.slice(0,7),acts=[];
@@ -2621,6 +2664,171 @@ function route(){let r=(location.hash||'').replace('#','');if(r==='bills')r='pla
 window.addEventListener('hashchange',()=>{route();window.scrollTo(0,0);});
 route();
 
+// ===== Setup walkthrough: pay, monthly costs, savings, then a summary =====
+let W=null;
+const SETUP_BILLS=[['Rent or mortgage','housing'],['Electricity','utilities'],['Water','utilities'],['Phone','utilities'],['Internet','utilities'],
+  ['Car payment','car'],['Car insurance','car'],['Gas & tolls','car'],['Groceries','groceries'],['Health insurance','health'],
+  ['Streaming & subscriptions','subscriptions'],['Eating out','food'],['Fun & hobbies','fun']];
+const SETUP_PERIODS=[['weekly','Every week'],['biweekly','Every 2 weeks'],['semimonthly','Twice a month'],['monthly','Once a month']];
+const pnum=v=>{const n=parseFloat(String(v==null?'':v).replace(/[$,\s]/g,''));return isFinite(n)&&n>0?n:0;};
+function showSetup(){
+  const el=$('#setup');if(!el)return;
+  if(!el.hidden&&W)return;
+  if(!W)W={step:0,gross:false,amount:'',withheld:'',period:'biweekly',next:today(),noPay:false,bills:{},extra:[],ef:3,saved:'',save:'',base:null};
+  el.hidden=false;document.body.classList.add('authing');setupRender();
+}
+function closeSetup(){const el=$('#setup');if(el){el.hidden=true;el.replaceChildren();}document.body.classList.remove('authing');W=null;
+  if(store.nudgeAfterSetup){store.nudgeAfterSetup=false;setTimeout(maybePasskeyNudge,800);}}
+// Run the guide again from Settings or an empty Plan: it replaces pay and plan, and keeps everything else.
+function startSetupAgain(){
+  const go=()=>{W={step:0,gross:!S.cfg.prefs.netOnly&&S.cfg.income.paychecks.length>0,amount:'',withheld:'',period:'biweekly',next:today(),noPay:false,bills:{},extra:[],ef:3,saved:S.cfg.prefs.efSaved||'',save:'',base:clone(S.cfg)};
+    $('#setup').hidden=true;showSetup();};
+  if(!S.cfg.plan.length&&!S.cfg.income.paychecks.length)return go();
+  confirmDialog({title:'Run the setup guide again?',body:'It replaces your paychecks and plan items with what you enter. Your spending, categories and goals stay as they are.',
+    actions:[{label:'Start the guide',kind:'primary',onClick:go}]});
+}
+// First payday of this year in the same rhythm as the next one, so the whole year counts.
+function firstPayday(period,next){
+  const y=String(new Date().getFullYear()),jan=y+'-01-01';
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(next||''))next=today();
+  if(period==='weekly'||period==='biweekly'){const st=period==='weekly'?7:14;let d=next;
+    while(d>jan&&addDaysStr(d,-st)>=jan)d=addDaysStr(d,-st);
+    while(d<jan)d=addDaysStr(d,st);return d;}
+  const D=+next.slice(8);
+  return y+'-01-'+String(period==='monthly'?D:Math.min(...semiDays(D))).padStart(2,'0');
+}
+function setupCat(cfg,id){const cs=cfg.categories;const want=(defaultCategories().find(c=>c.id===id)||{}).name||'';
+  const c=cs.find(c=>c.id===id)||cs.find(c=>c.name.toLowerCase()===want.toLowerCase())||cs.find(c=>/^others?$/i.test(c.name))||cs[0];return c?c.id:id;}
+function setupBuild(){
+  const cfg=W.base?clone(W.base):starterConfig(),I=cfg.income,P=cfg.prefs,sid=()=>uid().replace(/-/g,'').slice(0,10);
+  P.setup='done';
+  I.paychecks=[];
+  if(!W.noPay&&pnum(W.amount)){
+    I.paychecks.push({id:'pc'+sid(),name:'Main job',period:W.period,gross:r2(pnum(W.amount)),start:firstPayday(W.period,W.next),end:'',deductions:[]});
+    if(W.gross){I.taxes=defaultTaxes();I.taxes.forEach(t=>{if(t.incomeTax)t.value=r2(pnum(W.withheld));});P.netOnly=false;}
+    else{I.taxes=[];P.netOnly=true;}
+  }else if(!W.base){I.taxes=[];P.netOnly=true;}
+  cfg.plan=[];
+  const line=(name,cat,amount)=>({id:'p'+sid(),categoryId:setupCat(cfg,cat),name,amount:r2(amount),include:true,auto:null,freq:'monthly',due:''});
+  SETUP_BILLS.forEach(([n,cat],i)=>{const a=pnum(W.bills[i]);if(a)cfg.plan.push(line(n,cat,a));});
+  W.extra.forEach(x=>{const a=pnum(x.amount);if(a&&String(x.name||'').trim())cfg.plan.push(line(x.name.trim(),'others',a));});
+  const sv=pnum(W.save);if(sv)cfg.plan.push(line(W.ef?'Emergency fund':'Savings','savings',sv));
+  if(W.ef)P.efMonths=W.ef;P.efSaved=r2(pnum(W.saved));
+  return normalize(cfg);
+}
+function setupRender(){
+  const el=$('#setup');if(!el||!W)return;
+  const go=n=>{W.step=n;setupRender();el.scrollTop=0;window.scrollTo(0,0);};
+  const err=h('p',{class:'err',hidden:true,role:'alert',style:'margin:0'});
+  const fail=m=>{err.textContent=m;err.hidden=false;};
+  const moneyIn=(id,val,on,label)=>h('div',{class:'money'},h('input',{type:'text',inputmode:'decimal',id,class:'num',autocomplete:'off',placeholder:'0.00',value:val||'','aria-label':label,oninput:e=>on(e.target.value)}));
+  const field=(id,l,el2,hint)=>h('div',{class:'field'},h('label',{for:id},l),el2,hint?h('span',{class:'hint'},hint):null);
+  const steps=['Your pay','Monthly costs','Savings','All set'];
+  const dots=h('ol',{class:'sdots','aria-label':'Setup progress'},...steps.map((t,i)=>h('li',{class:i===W.step?'on':i<W.step?'done':'','aria-current':i===W.step?'step':null},h('span',{},t))));
+  const nav=(back,next,nextLabel)=>h('div',{class:'snav'},back!=null?h('button',{type:'button',class:'btn',onclick:()=>go(back)},'Back'):h('span'),h('button',{type:'button',class:'btn primary',onclick:next},nextLabel||'Continue'));
+  let body;
+  if(W.step===0){
+    const per=h('div',{class:'seg sseg',role:'radiogroup','aria-label':'How often you’re paid'},...SETUP_PERIODS.map(([k,l])=>h('button',{type:'button',role:'radio','aria-checked':String(W.period===k),class:W.period===k?'on':'',onclick:()=>{W.period=k;setupRender();}},l)));
+    body=h('div',{class:'card stack'},
+      h('h2',{id:'setup-title'},'Let’s set up your plan'),
+      h('p',{class:'hint',style:'margin:0'},'Three quick steps. Rough numbers are fine, and you can change everything later.'),
+      field('su-amt',W.gross?'Pay before taxes, each paycheck':'How much do you take home each paycheck?',moneyIn('su-amt',W.amount,v=>{W.amount=v;},'Pay per paycheck'),
+        W.gross?null:'The amount that lands in your bank account.'),
+      W.gross?field('su-wh','Income tax withheld each paycheck (optional)',moneyIn('su-wh',W.withheld,v=>{W.withheld=v;},'Income tax withheld'),'It’s on your pay stub. Leave it blank if you’re not sure.'):null,
+      h('button',{type:'button',class:'linkbtn',style:'padding:0;justify-self:start;font-size:14px',onclick:()=>{W.gross=!W.gross;setupRender();}},
+        W.gross?'Use take-home pay instead':'I know my pay before taxes (adds a tax estimate)'),
+      h('div',{class:'field'},h('span',{class:'flabel'},'How often are you paid?'),per),
+      field('su-next','When’s your next payday?',h('input',{type:'date',id:'su-next',value:W.next||'',onchange:e=>{W.next=e.target.value;}}),'Used to place your paydays on the calendar.'),
+      err,
+      nav(null,()=>{if(!pnum(W.amount))return fail('Enter your pay, or tap “I don’t have a regular paycheck” below.');W.noPay=false;go(1);}),
+      h('div',{class:'alt'},
+        h('button',{type:'button',class:'linkbtn',style:'padding:0',onclick:()=>{W.noPay=true;go(1);}},'I don’t have a regular paycheck'),
+        W.base?h('button',{type:'button',class:'linkbtn',style:'padding:0',onclick:()=>closeSetup()},'Cancel'):
+          h('button',{type:'button',class:'linkbtn',style:'padding:0',onclick:()=>{S.cfg.prefs.setup='skipped';closeSetup();save();}},'Skip setup')));
+  }else if(W.step===1){
+    const rows=h('div',{class:'sbills'},...SETUP_BILLS.map(([n],i)=>h('div',{class:'sbill'},h('label',{for:'su-b'+i},n),moneyIn('su-b'+i,W.bills[i],v=>{W.bills[i]=v;upd();},n+' per month'))),
+      ...W.extra.map((x,i)=>h('div',{class:'sbill'},h('input',{type:'text',id:'su-xn'+i,value:x.name||'',placeholder:'Name',autocomplete:'off','aria-label':'Other cost name',oninput:e=>{x.name=e.target.value;}}),
+        moneyIn('su-xa'+i,x.amount,v=>{x.amount=v;upd();},'Other cost per month'))));
+    const tot=h('b',{class:'num'});
+    const upd=()=>{const t=Object.values(W.bills).reduce((a,v)=>a+pnum(v),0)+W.extra.reduce((a,x)=>a+pnum(x.amount),0);tot.textContent=money(t);};upd();
+    body=h('div',{class:'card stack'},
+      h('h2',{id:'setup-title'},'Your regular monthly costs'),
+      h('p',{class:'hint',style:'margin:0'},'Fill in the ones you have and leave the rest blank. Monthly amounts; a guess is fine.'),
+      rows,
+      h('button',{type:'button',class:'linkbtn',style:'padding:0;justify-self:start;font-size:14px',onclick:()=>{W.extra.push({name:'',amount:''});setupRender();setTimeout(()=>{const f=$('#su-xn'+(W.extra.length-1));if(f)f.focus();},30);}},'+ Add another'),
+      h('div',{class:'stot'},h('span',{},'Total each month'),tot),
+      nav(0,()=>go(2)));
+  }else if(W.step===2){
+    const efs=h('div',{class:'seg sseg',role:'radiogroup','aria-label':'Emergency fund'},...[[0,'Not now'],[3,'3 months'],[6,'6 months']].map(([m,l])=>h('button',{type:'button',role:'radio','aria-checked':String(W.ef===m),class:W.ef===m?'on':'',onclick:()=>{W.ef=m;setupRender();}},l)));
+    const pay=W.noPay?0:pnum(W.amount)*(PERIODS[W.period]||PERIODS.monthly).ppm;
+    const sug=pay>0?Math.max(10,Math.round(pay*0.1/10)*10):0;
+    body=h('div',{class:'card stack'},
+      h('h2',{id:'setup-title'},'Build a safety net'),
+      h('p',{class:'hint',style:'margin:0'},'An emergency fund covers surprises like a car repair or a gap in pay. Most people aim for 3 to 6 months of needs.'),
+      h('div',{class:'field'},h('span',{class:'flabel'},'Emergency fund goal'),efs),
+      W.ef?field('su-saved','Already saved toward it (optional)',moneyIn('su-saved',W.saved,v=>{W.saved=v;},'Already saved')):null,
+      field('su-save','How much can you save each month? (optional)',moneyIn('su-save',W.save,v=>{W.save=v;},'Save each month'),sug?'About 10% of your take-home is a good start: '+money(sug)+'.':null),
+      nav(1,()=>go(3)));
+  }else{
+    const cfg=setupBuild(),cm=today().slice(0,7),cy=new Date().getFullYear(),c=calc(cfg,cm,cy);
+    const net=c.yearIncome(cy).net/12,planned=c.plannedTotal,left=net-planned;
+    const row=(l,v,cls)=>h('div',{class:'srow'},h('span',{},l),h('b',{class:'num '+(cls||'')},v));
+    body=h('div',{class:'card stack'},
+      h('h2',{id:'setup-title'},'You’re all set'),
+      cfg.income.paychecks.length?h('div',{class:'ssum'},
+        row(cfg.prefs.netOnly?'Take-home each month (average)':'Take-home each month (estimate)',money(net)),
+        row('Bills, budgets and savings',money(planned)),
+        h('div',{class:'srow big'},h('span',{},'Left for everything else'),h('b',{class:'num '+(left<0?'neg':'pos')},money(left))))
+      :h('p',{class:'msg'},'Add your pay in the Income tab whenever you’re ready, and Finance Planning will show what’s left each month.'),
+      left<0&&cfg.income.paychecks.length?h('p',{class:'hint neg',style:'margin:0'},'Your plan is '+money(-left)+' more than your take-home. The Plan tab can help you find room.'):null,
+      h('div',{class:'stips'},h('b',{},'What’s next'),
+        h('ul',{},h('li',{},'Tap ',h('b',{},'+ Add expense'),' whenever you spend, to see what’s left this month.'),
+          h('li',{},h('b',{},'Plan'),' holds your bills and goals. Adjust amounts any time.'),
+          h('li',{},h('b',{},'Income'),' has your paychecks; add raises or a second job there.'))),
+      nav(2,()=>{S.cfg=cfg;closeSetup();save();location.hash='#overview';toast('You’re all set');},'Start using Finance Planning'));
+  }
+  el.replaceChildren(h('div',{class:'authbox setupbox'},h('div',{class:'brand'},h('h1',{},'Finance Planning')),dots,body,
+    W.step===0&&!W.base?h('p',{class:'hint',style:'margin:0;text-align:center'},'Just looking around? ',h('button',{type:'button',class:'linkbtn',style:'padding:0',onclick:()=>{
+      const ex=normalize(defaults());ex.prefs.setup='example';ex.prefs.ovMore=true;S.cfg=ex;closeSetup();save();location.hash='#overview';}},'Explore with example numbers')):null));
+  setTimeout(()=>{if(document.activeElement&&el.contains(document.activeElement))return;const f=el.querySelector('input');if(f&&W&&W.step<3)f.focus({preventScroll:true});},30);
+}
+// ===== Home: getting-started checklist and the example-data banner =====
+function startChecklist(){
+  const P=S.cfg.prefs;if(P.checklist==='hidden'||P.setup==='example')return null;
+  const logged=Object.keys(S.expenses).some(id=>!id.startsWith('plan-')&&S.expenses[id]&&!S.expenses[id].skip);
+  const items=[
+    ['Add your pay',S.cfg.income.paychecks.length>0,()=>{location.hash='#income';}],
+    ['Plan your monthly costs',S.cfg.plan.length>0,()=>{location.hash='#plan';}],
+    ['Log something you spent',logged,()=>openSheet(null)],
+    ['Set a savings goal',(S.cfg.goals||[]).length>0||+P.efSaved>0||S.cfg.plan.some(l=>/emergenc|saving/i.test(l.name||'')),()=>{location.hash='#plan';}]];
+  const done=items.filter(i=>i[1]).length;if(done===items.length)return null;
+  return h('div',{class:'card checklist'},
+    h('div',{class:'clhead'},h('h3',{},'Getting started'),h('span',{class:'hint num'},done+' of '+items.length+' done'),
+      h('button',{type:'button',class:'linkbtn',style:'padding:0;font-size:13px;margin-left:auto',onclick:()=>{P.checklist='hidden';save();}},'Hide')),
+    h('div',{class:'meter'},h('i',{style:'width:'+done/items.length*100+'%'})),
+    h('ul',{},...items.map(([t,ok,fn])=>h('li',{class:ok?'ok':''},
+      ok?h('span',{class:'clmark','aria-hidden':'true'},'✓'):h('span',{class:'clmark','aria-hidden':'true'}),
+      ok?h('span',{},t,h('span',{class:'sr'},' (done)')):h('button',{type:'button',class:'linkbtn',onclick:fn},t+' →')))));
+}
+function exampleBanner(){
+  if(S.cfg.prefs.setup!=='example')return null;
+  return h('div',{class:'card exbanner'},h('div',{},h('b',{},'You’re looking at example numbers.'),h('p',{class:'hint',style:'margin:2px 0 0'},'Look around, then set up your own when you’re ready.')),
+    h('button',{type:'button',class:'btn primary',onclick:()=>{
+      const n=Object.keys(S.expenses).length;
+      const reset=()=>{if(n)store.bulkDelete(Object.keys(S.expenses));S.cfg=normalize(starterConfig());save();};
+      if(!n)return reset();
+      confirmDialog({title:'Clear the example numbers?',body:'This removes the example numbers and the '+n+' expense'+(n>1?'s':'')+' you added, then opens the setup guide.',actions:[{label:'Clear and set up',kind:'primary',onClick:reset}]});}},'Set up my own'));
+}
+// Take-home only: nothing to estimate for taxes until there's pay before taxes.
+function switchToGross(){const I=S.cfg.income;S.cfg.prefs.netOnly=false;if(!I.taxes.length){I.taxes=defaultTaxes();I.taxes.forEach(t=>{if(t.incomeTax)t.value=0;});}
+  save();location.hash='#income';toast('Now change each paycheck to your pay before taxes. Payroll taxes are in the Taxes tab.');}
+function netOnlyNote(where){
+  if(!S.cfg.prefs.netOnly)return null;
+  return h('div',{class:'card exbanner'},h('div',{},h('b',{},where==='taxes'?'No tax estimate yet':'You’re tracking take-home pay'),
+    h('p',{class:'hint',style:'margin:2px 0 0'},where==='taxes'?'You set up Finance Planning with take-home pay, which already has taxes taken out. To estimate your yearly income tax, switch to your pay before taxes.'
+      :'Your paychecks are the amounts after taxes. Switch to pay before taxes to get a tax estimate.')),
+    h('button',{type:'button',class:'btn',onclick:switchToGross},'Switch to pay before taxes'));
+}
 // ===== Sign in screens (website only) =====
 function hideAuth(){const a=$('#auth');if(a){a.hidden=true;a.replaceChildren();}document.body.classList.remove('authing');}
 function authScreen(mode,note){
@@ -2718,7 +2926,9 @@ async function addPasskey(){
   catch(e){if(pkCancelled(e))return;console.warn(e);toast(pkErr(e));}}
 // After a password sign-in, offer a passkey once per account on this device.
 async function maybePasskeyNudge(){
-  if(!pkOn()||!store.uid)return;const k='fp-pk-nudge-'+store.uid;
+  if(!pkOn()||!store.uid)return;
+  if(S.cfg.prefs.setup==='pending'||W){store.nudgeAfterSetup=true;return;}
+  const k='fp-pk-nudge-'+store.uid;
   try{if(localStorage.getItem(k))return;}catch(e){}
   let list;try{list=await pkList();}catch(e){return;}if(list.length)return;
   try{localStorage.setItem(k,'1');}catch(e){}
