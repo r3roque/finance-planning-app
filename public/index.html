@@ -634,8 +634,8 @@ function defaultBrackets(){return [{over:0,base:0,rate:0},{over:9000,base:0,rate
 // Everything taken out of a paycheck: payroll taxes, withholding, retirement, insurance and so on.
 // mode: 'pct' (% of each paycheck's gross), 'paycheck' (fixed per paycheck) or 'monthly' (fixed per month, split across that month's paychecks).
 const DMODES=[['pct','Percentage of gross'],['paycheck','Fixed amount per paycheck'],['monthly','Fixed amount monthly']];
-const DFLAGS=[['retirement','Retirement savings'],['health','Health savings'],['insurance','Insurance plan'],['withheld','Income tax withheld'],['nonTaxable','Non-taxable']];
-function newDeduction(o){return Object.assign({id:uid(),name:'New deduction',mode:'paycheck',value:0,start:'',end:'',retirement:false,health:false,insurance:false,withheld:false,nonTaxable:false},o||{});}
+const DFLAGS=[['retirement','Retirement savings'],['health','Health savings'],['insurance','Insurance plan'],['payrollTax','Payroll tax'],['withheld','Income tax withheld'],['nonTaxable','Non-taxable']];
+function newDeduction(o){return Object.assign({id:uid(),name:'New deduction',mode:'paycheck',value:0,start:'',end:'',retirement:false,health:false,insurance:false,payrollTax:false,withheld:false,nonTaxable:false},o||{});}
 function defaultDeductions(withheld,region){return [newDeduction({name:'Medicare',mode:'pct',value:1.45,payrollTax:true}),newDeduction({name:'Social Security',mode:'pct',value:6.2,payrollTax:true}),
   newDeduction({name:region==='other'?'Income tax withheld':'PR income tax withheld',mode:'paycheck',value:num(withheld,0),withheld:true})];}
 // Older data kept payroll taxes in one list and other deductions on each paycheck. Combine them into one dated list.
@@ -700,7 +700,9 @@ function normalize(d){
   inc.paychecks.forEach(p=>p.deductions.forEach(d=>{delete d.max;}));
   if(!Array.isArray(src.payrollDeductions))delete inc.payrollDeductions;
   migrateDeductions(inc);
-  inc.payrollDeductions=inc.payrollDeductions.map(d=>newDeduction({...d,value:num(d.value,0),mode:['pct','paycheck','monthly'].includes(d.mode)?d.mode:'paycheck'}));
+  // Deductions saved before the Payroll tax checkbox existed: Medicare and Social Security get it.
+  inc.payrollDeductions=inc.payrollDeductions.map(d=>newDeduction({...d,value:num(d.value,0),mode:['pct','paycheck','monthly'].includes(d.mode)?d.mode:'paycheck',
+    payrollTax:d.payrollTax===undefined?(!d.withheld&&!(d.retirement||d.health||d.insurance||d.nonTaxable)&&/medicare|social security|seguro social|fica/i.test(d.name||'')):!!d.payrollTax}));
   ['period','gross','deductions','stdBase','stdPerDep','dependents','reductionPct','bonusIncomeTaxWithheld'].forEach(k=>delete inc[k]);
   return {v:2,income:inc,
     categories:Array.isArray(d.categories)&&d.categories.length?d.categories.map(c=>({id:c.id,name:c.name||'Untitled',color:c.color||'#7A8582',bucket:BUCKETS[c.bucket]?c.bucket:'need'})):D.categories,
@@ -744,8 +746,8 @@ function activeFrac(pc,month){
   return (+to.slice(8)-(+from.slice(8))+1)/n;
 }
 const dedOn=(d,date)=>(!YMD.test(d.start||'')||d.start<=date)&&(!YMD.test(d.end||'')||d.end>=date);
-// Payroll taxes (Medicare, Social Security) and withholding are grouped as taxes; everything else as deductions.
-const dedTaxLike=d=>!!d.withheld||!!d.payrollTax||(!(d.retirement||d.health||d.insurance||d.nonTaxable)&&/medicare|social security|seguro social|fica/i.test(d.name||''));
+// Items marked Payroll tax or Income tax withheld are grouped as taxes; everything else as deductions.
+const dedTaxLike=d=>!!d.withheld||!!d.payrollTax;
 // What comes out of one paycheck paid on a date. Monthly amounts are added once a month, not here.
 // A bonus only has percentage deductions (like Medicare and Social Security), plus the income tax withheld on it.
 function payItemsAt(pc,deds,date){
