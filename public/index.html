@@ -298,6 +298,7 @@ button.pcfold{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;ga
 .efprog{flex:1 1 100%;display:grid;gap:8px;border-top:1px solid var(--line);padding-top:14px}
 .efrow{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .efpct{text-align:right}
+.bonusbox{display:grid;gap:10px;padding-top:4px}
 .efins{display:flex;gap:12px;flex-wrap:wrap;flex:1 1 300px}.efins .field{flex:1 1 130px;max-width:200px}.efins input[type=date]{width:100%;min-width:0}
 .billsave{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding-left:34px}.billsave .meter{flex:1 1 120px;max-width:220px}.billsave input{width:110px}
 .efpct b{display:block;font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1.1}
@@ -658,6 +659,13 @@ function normalize(d){
   if(src.applyReduction===undefined&&src.reductionPct!==undefined)inc.applyReduction=num(src.reductionPct,0)>0;
   if(!Array.isArray(inc.bonuses))inc.bonuses=[];
   if(num(src.bonusIncomeTaxWithheld,0)>0&&inc.bonuses.length&&!inc.bonuses.some(b=>b.withheld))inc.bonuses=inc.bonuses.map((b,i)=>i===0?{...b,withheld:num(src.bonusIncomeTaxWithheld,0)}:b);
+  // Bonuses used to be a separate list; they're now one-time paychecks marked as bonuses.
+  if(inc.bonuses.length){
+    const cy=new Date().getFullYear();
+    inc.paychecks=(Array.isArray(inc.paychecks)?inc.paychecks:[]).concat(inc.bonuses.map((b,i)=>({id:'pcb'+String(b.id||i).replace(/[^a-z0-9]/gi,'').slice(0,12),name:b.name||'Bonus',period:'once',gross:num(b.amount,0),
+      start:/^\d{4}-\d{2}-\d{2}$/.test(b.date||'')?b.date:cy+'-12-31',end:'',deductions:[],bonus:true,withheld:num(b.withheld,0)})));
+    inc.bonuses=[];
+  }
   if(!Array.isArray(inc.brackets))inc.brackets=defaultBrackets();
   if(!Array.isArray(src.taxDeductions)){
     inc.taxDeductions=num(src.nonTaxable,0)>0?[{id:'td1',name:'Other non-taxable income',period:'yearly',amount:num(src.nonTaxable,0),start:'',end:''}]:[];
@@ -709,10 +717,14 @@ function activeFrac(pc,month){
   if(from>to)return 0;
   return (+to.slice(8)-(+from.slice(8))+1)/n;
 }
+// A bonus paycheck only has the taxes marked "Applies to bonuses", plus the income tax withheld on that bonus.
 function payCalc(pc,taxes){
   const ppm=(PERIODS[pc.period]||PERIODS.monthly).ppm,pGross=num(pc.gross,0);
   const ded=(pc.deductions||[]).map(x=>({...x,per:num(x.amount,0),m:num(x.amount,0)*ppm}));
-  const tax=(taxes||[]).map(x=>{const per=x.mode==='pct'?pGross*num(x.value,0)/100:num(x.value,0);return {...x,per,m:per*ppm};});
+  const tx=(taxes||[]).filter(t=>!pc.bonus||t.bonus);
+  const tax=tx.map(x=>{const per=x.mode==='pct'?pGross*num(x.value,0)/100:num(x.value,0);return {...x,per,m:per*ppm};});
+  if(pc.bonus&&num(pc.withheld,0)>0){const it=(taxes||[]).find(t=>t.incomeTax);const per=num(pc.withheld,0);
+    tax.push({id:'bw-'+pc.id,name:it?it.name:'Income tax withheld',mode:'fixed',value:per,incomeTax:true,per,m:per*ppm});}
   const pDed=ded.reduce((s,x)=>s+x.per,0),pTax=tax.reduce((s,x)=>s+x.per,0),pNet=pGross-pDed-pTax;
   return {ppm,pGross,ded,tax,pDed,pTax,pNet,mGross:pGross*ppm,mDed:pDed*ppm,mTax:pTax*ppm,mNet:pNet*ppm,
     mRetire:ded.filter(x=>x.retirement).reduce((s,x)=>s+x.m,0),mWithheld:tax.filter(t=>t.incomeTax).reduce((s,t)=>s+t.m,0)};
@@ -729,7 +741,8 @@ function capFor(cfg,year){
 function yearSchedule(cfg,year){
   year=String(year);
   const cap=capFor(cfg,year),ys=year+'-01-01',ye=year+'-12-31';let used=0,reached=0;
-  const months=Array.from({length:12},()=>({gross:0,ded:{},tax:{},dedTotal:0,taxTotal:0,net:0,retire:0,withheld:0,active:0,byPc:{}}));
+  const part=()=>({gross:0,ded:{},tax:{},dedTotal:0,taxTotal:0,net:0});
+  const months=Array.from({length:12},()=>({gross:0,ded:{},tax:{},dedTotal:0,taxTotal:0,net:0,retire:0,withheld:0,active:0,byPc:{},k:{pay:part(),bonus:part()}}));
   const ev=[],P={};
   cfg.income.paychecks.forEach(pc=>{
     const first=YMD.test(pc.start||'')?pc.start:ys,to=YMD.test(pc.end||'')&&pc.end<ye?pc.end:ye;
@@ -740,14 +753,15 @@ function yearSchedule(cfg,year){
   ev.forEach(({d,pc})=>{
     const p=P[pc.id]=P[pc.id]||payCalc(pc,cfg.income.taxes),m=+d.slice(5,7),o=months[m-1];
     let B=o.byPc[pc.id];if(!B){B=o.byPc[pc.id]={gross:0,ded:0,tax:0,count:0};o.active++;}
-    B.count++;B.gross+=p.pGross;o.gross+=p.pGross;
+    const K=o.k[pc.bonus?'bonus':'pay'];
+    B.count++;B.gross+=p.pGross;o.gross+=p.pGross;K.gross+=p.pGross;
     p.ded.forEach(x=>{let a=x.per;
       if(x.retirement&&cap>0){const left=Math.max(0,cap-used);if(a>=left-1e-9){a=left;if(!reached)reached=m;}used+=a;}
       else if(x.retirement)used+=a;
-      const nm=x.name||'Deduction';o.ded[nm]=(o.ded[nm]||0)+a;o.dedTotal+=a;B.ded+=a;if(x.retirement)o.retire+=a;});
-    p.tax.forEach(x=>{const a=x.per,nm=x.name||'Tax';o.tax[nm]=(o.tax[nm]||0)+a;o.taxTotal+=a;B.tax+=a;if(x.incomeTax)o.withheld+=a;});
+      const nm=x.name||'Deduction';o.ded[nm]=(o.ded[nm]||0)+a;o.dedTotal+=a;B.ded+=a;if(x.retirement)o.retire+=a;K.ded[nm]=(K.ded[nm]||0)+a;K.dedTotal+=a;});
+    p.tax.forEach(x=>{const a=x.per,nm=x.name||'Tax';o.tax[nm]=(o.tax[nm]||0)+a;o.taxTotal+=a;B.tax+=a;if(x.incomeTax)o.withheld+=a;K.tax[nm]=(K.tax[nm]||0)+a;K.taxTotal+=a;});
   });
-  months.forEach(o=>{o.net=o.gross-o.dedTotal-o.taxTotal;});
+  months.forEach(o=>{o.net=o.gross-o.dedTotal-o.taxTotal;for(const k in o.k){const q=o.k[k];q.net=q.gross-q.dedTotal-q.taxTotal;}});
   return {months,cap,used,reached};
 }
 function monthIncome(cfg,month){
@@ -755,9 +769,10 @@ function monthIncome(cfg,month){
   return {gross:o.gross,ded:o.dedTotal,tax:o.taxTotal,net:o.net,retire:o.retire,withheld:o.withheld,active:o.active};
 }
 // Itemized totals across months, honoring paycheck dates and caps.
-function incomeBreakdown(cfg,months){
+// kind: 'pay' for regular paychecks, 'bonus' for bonuses, or nothing for both.
+function incomeBreakdown(cfg,months,kind){
   const o={gross:0,ded:{},tax:{},dedTotal:0,taxTotal:0,net:0};const sched={};
-  months.forEach(month=>{const y=month.slice(0,4);sched[y]=sched[y]||yearSchedule(cfg,y);const x=sched[y].months[+month.slice(5,7)-1];
+  months.forEach(month=>{const y=month.slice(0,4);sched[y]=sched[y]||yearSchedule(cfg,y);let x=sched[y].months[+month.slice(5,7)-1];if(kind)x=x.k[kind];
     o.gross+=x.gross;o.net+=x.net;o.dedTotal+=x.dedTotal;o.taxTotal+=x.taxTotal;
     for(const k in x.ded)o.ded[k]=(o.ded[k]||0)+x.ded[k];for(const k in x.tax)o.tax[k]=(o.tax[k]||0)+x.tax[k];});
   return o;
@@ -835,18 +850,15 @@ function taxDeductionYear(d,year){
 function bonusYear(b){return YMD.test(b.date||'')?+b.date.slice(0,4):new Date().getFullYear();}
 function taxFor(cfg,year){
   const I=cfg.income,Y=yearIncome(cfg,year);
-  let bonusTotal=0,bonusTax=0,bonusWithheld=0;
-  I.bonuses.filter(b=>bonusYear(b)===+year).forEach(b=>{
-    const a=num(b.amount,0);
-    const pct=(I.taxes||[]).filter(t=>t.bonus&&t.mode==='pct').reduce((s,t)=>s+num(t.value,0),0);
-    bonusTotal+=a;bonusTax+=a*pct/100;});
-  const yGross=Y.gross+bonusTotal,stdDed=EXEMPTION,retireYear=Y.retire;
+  const Bn=incomeBreakdown(cfg,Array.from({length:12},(_,i)=>year+'-'+pad2(i+1)),'bonus');
+  const bonusTotal=Bn.gross,bonusTax=Bn.taxTotal+Bn.dedTotal;
+  const yGross=Y.gross,stdDed=EXEMPTION,retireYear=Y.retire;
   const dedItems=(I.taxDeductions||[]).map(d=>({id:d.id,name:d.name,...taxDeductionYear(d,year)})).filter(x=>x.total>0);
   const otherDed=dedItems.reduce((s,x)=>s+x.total,0);
   const taxable=Math.max(0,yGross-retireYear-otherDed-stdDed);
   const taxDue=bracketTax(taxable,I.brackets)*(I.applyReduction!==false?1-REDUCTION/100:1);
-  const withheld=Y.withheld+bonusWithheld;
-  return {year:+year,payGross:Y.gross,payNet:Y.net,bonusTotal,bonusTax,bonusNet:bonusTotal-bonusTax,yGross,stdDed,retireYear,otherDed,dedItems,taxable,taxDue,withheld,outOfPocket:taxDue-withheld};
+  const withheld=Y.withheld;
+  return {year:+year,payGross:Y.gross-bonusTotal,payNet:Y.net-Bn.net,bonusTotal,bonusTax,bonusNet:bonusTotal-bonusTax,yGross,stdDed,retireYear,otherDed,dedItems,taxable,taxDue,withheld,outOfPocket:taxDue-withheld};
 }
 function calc(cfg,month,taxYear){
   month=month||curMonth();
@@ -1826,8 +1838,9 @@ async function runImport(){
   if(o.income){const I=d.income,start=d.years.length?d.years[0]+'-01-01':'';
     cfg.income=Object.assign({},cfg.income,{nonTaxable:0,taxDeductions:I.nonTaxable>0?[{id:uid(),name:'Other non-taxable income',period:'yearly',amount:r2(I.nonTaxable),start:'',end:''}]:(cfg.income.taxDeductions||[]),applyReduction:I.applyReduction,brackets:I.brackets,
       taxes:I.taxes.map(x=>({id:uid(),...x})),
-      paychecks:I.paychecks.map(p=>({...p,id:'pc'+uid().replace(/-/g,'').slice(0,10),start,end:'',deductions:p.deductions.map(x=>({id:uid(),...x}))})),
-      bonuses:I.bonuses.map(x=>({id:uid(),...x}))});}
+      paychecks:I.paychecks.map(p=>({...p,id:'pc'+uid().replace(/-/g,'').slice(0,10),start,end:'',deductions:p.deductions.map(x=>({id:uid(),...x}))}))
+        .concat(I.bonuses.map(x=>({id:'pc'+uid().replace(/-/g,'').slice(0,10),name:x.name||'Bonus',period:'once',gross:x.amount,start:x.date||((d.years[0]||new Date().getFullYear())+'-12-31'),end:'',deductions:[],bonus:true,withheld:x.withheld||0}))),
+      bonuses:[]});}
   store.saveSettings();
   let failed=0,count=0;
   if(o.expenses){
@@ -2294,7 +2307,7 @@ function paycheckCard(pc,I){
   if(inactive&&!openPcs.has(pc.id)){
     return h('div',{class:'card'},h('button',{type:'button',class:'pcfold','aria-expanded':'false',onclick:toggle},
       h('span',{class:'arrow','aria-hidden':'true'},'›'),
-      h('span',{class:'pcname'},pc.name,h('small',{},payRange(pc))),
+      h('span',{class:'pcname'},pc.name,h('small',{},(pc.bonus?'Bonus · ':'')+payRange(pc))),
       payStatus(pc),
       h('span',{class:'num pcnet'},money(P.pNet),h('small',{},pc.period==='once'?'net':'net per paycheck'))));
   }
@@ -2316,6 +2329,12 @@ function paycheckCard(pc,I){
     h('div',{class:'field'},h('label',{for:'pce-'+pc.id},'End date (optional)'),dateInp('pce-'+pc.id,pc.end,v=>{if(v&&pc.start&&v<pc.start){toast('End date must be after the start date.');render();return;}pc.end=v;openPcs.add(pc.id);save();},'End date'),
       pc.end?h('button',{type:'button',class:'linkbtn',style:'justify-self:start;padding:0;font-size:13px;line-height:18px',onclick:()=>{pc.end='';save();}},'Clear end date'):h('span',{class:'hint'},'Leave empty if it’s ongoing.')),
       ));
+  const bonusTaxes=I.taxes.filter(t=>t.bonus).map(t=>t.name);
+  card.append(h('div',{class:'bonusbox'},
+    h('label',{class:'check'},chk('pcb-'+pc.id,!!pc.bonus,v=>{pc.bonus=v;if(v&&!pc.withheld)pc.withheld=0;save();},'This paycheck is a bonus'),
+      h('span',{},'This is a bonus',h('br'),h('span',{class:'hint'},pc.bonus?'Only '+(bonusTaxes.length?bonusTaxes.join(' and '):'taxes marked “Applies to bonuses”')+' come out, plus any income tax withheld below.':'Bonuses are listed separately and only have taxes marked “Applies to bonuses” in Taxes.'))),
+    pc.bonus?h('div',{class:'field',style:'max-width:260px'},h('label',{for:'pcw-'+pc.id},'Income tax withheld'+(once?'':' per payment')),amt('pcw-'+pc.id,pc.withheld||'',n=>{pc.withheld=r2(n);save();},{label:'Income tax withheld on this bonus'}),
+      h('span',{class:'hint'},'From the pay stub. Leave empty if none.')):null));
   // deductions
   const drows=h('div',{class:'rows dedrows'});
   if(P.ded.length)drows.append(h('div',{class:'colhead'},h('span',{},'Name'),h('span',{class:'r'},'Per paycheck'),h('span',{})));
@@ -2504,10 +2523,10 @@ function vIncome(){
     h('h2',{},String(Y)),
     isCur?null:h('button',{class:'linkbtn',onclick:()=>{view.incomeYear=cy;render();}},'Back to '+cy+' →')));
   root.append(h('div',{class:'summary'},h('div',{class:'lead'},
-    h('div',{},h('div',{class:'eyebrow'},'Net pay in '+Y),h('div',{class:'big num'},money(Byr.net))),
+    h('div',{},h('div',{class:'eyebrow'},'Net income in '+Y),h('div',{class:'big num'},money(Byr.net))),
     h('div',{class:'stats'},
-      h('div',{class:'stat'},h('span',{class:'eyebrow'},'Gross pay in '+Y),h('b',{class:'num'},money(Byr.gross))),
-      h('div',{class:'stat'},h('span',{class:'eyebrow'},'Net bonuses in '+Y),h('b',{class:'num'},money(TY.bonusNet))),
+      h('div',{class:'stat'},h('span',{class:'eyebrow'},'Gross income in '+Y),h('b',{class:'num'},money(Byr.gross))),
+      TY.bonusTotal>0?h('div',{class:'stat'},h('span',{class:'eyebrow'},'Net bonuses in '+Y),h('b',{class:'num'},money(TY.bonusNet))):null,
       isCur?h('div',{class:'stat'},h('span',{class:'eyebrow'},'Net this month'),h('b',{class:'num'},money(Bm.net))):null))));
   const grid=h('div',{class:'cols'});
   const left=h('div',{class:'stack'});
@@ -2518,43 +2537,27 @@ function vIncome(){
   left.append(h('div',{class:'card'},h('h3',{},'Add a paycheck'),
     h('p',{class:'hint',style:'margin:0 0 10px'},'The new paycheck copies the deductions of the most recent one and starts '+(isCur?'today':'on Jan 1, '+Y)+'. For a raise, also set an end date on the old paycheck.'+(hidden?' '+hidden+' paycheck'+(hidden>1?'s are':' is')+' outside '+Y+' and hidden.':'')),
     h('button',{class:'btn primary',type:'button',onclick:()=>addPaycheck(Y)},'Add paycheck')));
-  // bonuses in the selected year (undated ones belong to the current year)
-  const bYear=b=>/^\d{4}-\d{2}-\d{2}$/.test(b.date||'')?+b.date.slice(0,4):cy;
-  const yb=I.bonuses.filter(b=>bYear(b)===Y);
-  const brows=h('div',{class:'rows bonrows'});
-  if(yb.length)brows.append(h('div',{class:'colhead'},h('span',{},'Name'),h('span',{class:'r'},'Amount'),h('span',{})));
-  [...yb].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).forEach(b=>brows.append(h('div',{class:'erow'},txt('bon-'+b.id,b.name,(v,el)=>{if(!v){el.value=b.name;return;}b.name=v;save();}),amt('boa-'+b.id,b.amount,n=>{b.amount=r2(n);save();},{label:'Amount for '+b.name}),del('Delete '+b.name,()=>{I.bonuses=I.bonuses.filter(y=>y.id!==b.id);save();}),
-    h('div',{class:'sub2'},
-      h('div',{class:'field',style:'flex:0 1 170px'},h('input',{type:'date',id:'bod-'+b.id,value:b.date||'','aria-label':'Date paid',onchange:e=>{b.date=e.target.value;save();}})),
-      b.date?null:h('span',{class:'hint'},'No date: counts toward '+cy+'.')))));
-  if(!yb.length)brows.append(h('p',{class:'hint',style:'margin:0'},'No bonuses in '+Y+'.'));
-  const bonusBox=h('div',{class:'card'},h('h3',{},'Bonuses & extra income'),brows,
-    h('div',{class:'addrow'},h('button',{class:'btn sm',type:'button',onclick:()=>{I.bonuses.push({id:uid(),name:'Bonus '+(I.bonuses.length+1),amount:0,date:isCur?today():Y+'-01-01'});save();}},'Add bonus')),
-    h('div',{class:'tbl',style:'margin-top:12px'},h('table',{},h('tbody',{},
-      h('tr',{},h('td',{},'Bonuses in '+Y),h('td',{class:'num'},money(TY.bonusTotal))),
-      h('tr',{class:'sub'},h('td',{},'Taxes on bonuses'),h('td',{class:'num'},'−'+money(TY.bonusTax))),
-      h('tr',{class:'total'},h('td',{},'Net bonuses'),h('td',{class:'num'},money(TY.bonusNet)))))));
   // overall gross to net
   const right=h('div',{class:'stack'});
   const row=(label,m,y,cls)=>h('tr',{class:cls||''},h('td',{},label),isCur?h('td',{class:'num'},money(m)):null,h('td',{class:'num'},money(y)));
-  const bpct=I.taxes.filter(t=>t.bonus&&t.mode==='pct').reduce((a,t)=>a+(+t.value||0),0);
-  const bm={gross:0,tax:0};I.bonuses.forEach(b=>{if((b.date||'').slice(0,7)===cm){bm.gross+=+b.amount||0;}});bm.tax=bm.gross*bpct/100;
-  const dn=[...new Set([...Object.keys(Byr.ded),...(isCur?Object.keys(Bm.ded):[])])],tn=[...new Set([...Object.keys(Byr.tax),...(isCur?Object.keys(Bm.tax):[])])];
+  const yMonths=Array.from({length:12},(_,i)=>Y+'-'+String(i+1).padStart(2,'0'));
+  const Pm=incomeBreakdown(S.cfg,[cm],'pay'),Py=incomeBreakdown(S.cfg,yMonths,'pay');
+  const Qm=incomeBreakdown(S.cfg,[cm],'bonus'),Qy=incomeBreakdown(S.cfg,yMonths,'bonus');
+  const hasB=Qy.gross>0||(isCur&&Qm.gross>0);
+  const names=(a,b,k)=>[...new Set([...Object.keys(b[k]),...(isCur?Object.keys(a[k]):[])])];
+  const section=(M,Yr,grossLabel,netLabel)=>[row(grossLabel,M.gross,Yr.gross),
+    ...names(M,Yr,'ded').map(k=>row(k,-(M.ded[k]||0),-(Yr.ded[k]||0),'sub')),M.dedTotal||Yr.dedTotal?row('Deductions',-M.dedTotal,-Yr.dedTotal):null,
+    ...names(M,Yr,'tax').map(k=>row(k,-(M.tax[k]||0),-(Yr.tax[k]||0),'sub')),row('Taxes',-M.taxTotal,-Yr.taxTotal),
+    row(netLabel,M.net,Yr.net,'total')];
   const span=isCur?3:2;
   right.append(h('div',{class:'card'},h('h3',{},'From pay to take-home'),h('div',{class:'tbl'},h('table',{},
-    h('thead',{},h('tr',{},h('th',{},'All paychecks'),isCur?h('th',{},'This month'):null,h('th',{},String(Y)))),
-    h('tbody',{},row('Gross income',Bm.gross,Byr.gross),
-      ...dn.map(k=>row(k,-(Bm.ded[k]||0),-(Byr.ded[k]||0),'sub')),row('Deductions',-Bm.dedTotal,-Byr.dedTotal),
-      ...tn.map(k=>row(k,-(Bm.tax[k]||0),-(Byr.tax[k]||0),'sub')),row('Taxes',-Bm.taxTotal,-Byr.taxTotal),
-      row('Net pay',Bm.net,Byr.net,'total'),
-      h('tr',{},h('td',{colspan:span,style:'border:0;padding-top:16px'},h('span',{class:'eyebrow'},'Bonuses'))),
-      row('Bonuses',bm.gross,TY.bonusTotal),
-      row('Taxes on bonuses',-bm.tax,-TY.bonusTax,'sub'),
-      row('Net bonuses',bm.gross-bm.tax,TY.bonusNet,'total'),
-      h('tr',{},h('td',{colspan:span,style:'border:0;padding:4px'})),
-      row('Net income with bonuses',Bm.net+bm.gross-bm.tax,Byr.net+TY.bonusNet,'total')))),
-    h('p',{class:'hint',style:'margin:8px 0 0'},'Adds up every payday '+(isCur?'in the month and the year':'in '+Y)+'. Deductions with the same name are combined. Bonuses count on their date; ones without a date count toward '+cy+'.')),
-    isSimple()&&!I.bonuses.length?null:bonusBox);
+    h('thead',{},h('tr',{},h('th',{},hasB?'Paychecks':'All paychecks'),isCur?h('th',{},'This month'):null,h('th',{},String(Y)))),
+    h('tbody',{},...section(Pm,Py,'Gross income','Net pay'),
+      ...(hasB?[h('tr',{},h('td',{colspan:span,style:'border:0;padding-top:16px'},h('span',{class:'eyebrow'},'Bonuses'))),
+        ...section(Qm,Qy,'Bonuses','Net bonuses'),
+        h('tr',{},h('td',{colspan:span,style:'border:0;padding:4px'})),
+        row('Net income with bonuses',Pm.net+Qm.net,Py.net+Qy.net,'total')]:[])))),
+    h('p',{class:'hint',style:'margin:8px 0 0'},'Adds up every payday '+(isCur?'in the month and the year':'in '+Y)+'. Deductions with the same name are combined. Paychecks marked as a bonus are listed separately.')));
   grid.append(left,right);root.append(grid);
   root.append(simpleNote());
   return root;
@@ -2797,7 +2800,7 @@ function tipCard(key){
 }
 function simpleNote(){
   if(!isSimple())return null;
-  return h('p',{class:'hint simplenote'},'Simple view hides some options, like bank import, paycheck deductions and bonuses. ',
+  return h('p',{class:'hint simplenote'},'Simple view hides some options, like bank import and paycheck deductions. ',
     h('button',{type:'button',class:'linkbtn',style:'padding:0;font-size:inherit',onclick:()=>{S.cfg.prefs.view='detailed';save();toast('Detailed view is on');}},'Show all options'));
 }
 function viewCard(){
@@ -2805,7 +2808,7 @@ function viewCard(){
   return h('div',{class:'card stack'},
     h('div',{class:'seg',role:'radiogroup','aria-label':'How much to show'},[['simple','Simple'],['detailed','Detailed']].map(([k,l])=>
       h('button',{type:'button',role:'radio','aria-checked':String(v===k),class:v===k?'on':'',onclick:()=>{S.cfg.prefs.view=k;save();}},l))),
-    h('p',{class:'hint',style:'margin:0'},v==='simple'?'Shows the essentials. Hidden: bank import, Auto-add dates on plan items, savings trackers for big bills, paycheck deductions, bonuses, tax deductions, and retirement and automatic-expense settings. Anything you already use stays visible.'
+    h('p',{class:'hint',style:'margin:0'},v==='simple'?'Shows the essentials. Hidden: bank import, Auto-add dates on plan items, savings trackers for big bills, paycheck deductions, tax deductions, and retirement and automatic-expense settings. Anything you already use stays visible.'
       :'Shows every option. Switch to Simple to hide the advanced ones.'));
 }
 function regionCard(){
@@ -2820,7 +2823,7 @@ function tipsCard(){
 }
 function addPaycheck(Y){
   const I=S.cfg.income,cy=new Date().getFullYear();Y=Y||cy;const isCur=Y===cy;
-  const last=sortedPaychecks(I)[0];
+  const last=sortedPaychecks(I).find(p=>!p.bonus)||null;
   const pc={id:'pc'+uid().replace(/-/g,'').slice(0,10),name:'Paycheck '+(I.paychecks.length+1),period:last&&last.period!=='once'?last.period:'biweekly',gross:last?last.gross:0,start:isCur?today():Y+'-01-01',end:'',
     deductions:last?last.deductions.map(x=>({...x,id:uid()})):[]};
   I.paychecks.push(pc);openPcs.add(pc.id);
