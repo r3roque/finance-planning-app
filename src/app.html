@@ -13,12 +13,14 @@
   --f-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
   --f-body:"Figtree","Segoe UI",system-ui,-apple-system,sans-serif;
   --r:12px;
+  --navbg:rgba(255,255,255,.72); --navline:rgba(18,34,32,.08); --navactive:rgba(14,107,87,.12);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0D1513; --surface:#15201D; --sunk:#1C2925; --line:#27362F; --remain:#2E3F39;
   --ink:#E3ECE8; --muted:#94A6A0; --accent:#47C9A2; --accent-ink:#06231C; --accent-soft:#163A30;
   --danger:#F2826F; --danger-soft:#3A1C18; --good:#5CCB8A;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  --navbg:rgba(30,44,40,.72); --navline:rgba(255,255,255,.08); --navactive:rgba(71,201,162,.16);
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
@@ -26,6 +28,7 @@
   --ink:#E3ECE8; --muted:#94A6A0; --accent:#47C9A2; --accent-ink:#06231C; --accent-soft:#163A30;
   --danger:#F2826F; --danger-soft:#3A1C18; --good:#5CCB8A;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  --navbg:rgba(30,44,40,.72); --navline:rgba(255,255,255,.08); --navactive:rgba(71,201,162,.16);
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -52,21 +55,27 @@ body.scrolled header.top{border-bottom-color:var(--line)}
 @media (max-width:700px){
   /* Phone: tabs become a bottom bar */
   header.top{position:static;border-bottom:0}
-  .tabscroll{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:9;max-width:none;overflow:visible;background:var(--surface);border-top:1px solid var(--line);
-    padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));box-shadow:0 -4px 16px rgba(18,34,32,.06)}
-  .tabscroll .tabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));width:100%;background:none;padding:0;border-radius:0}
-  .tabscroll .tabs a{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0 2px;border-radius:10px;font-size:11px;font-weight:600;color:var(--muted);min-width:0}
-  .tabscroll .tabs a span{overflow:hidden;text-overflow:ellipsis;max-width:100%}
-  .tabscroll .tabs a .ti{display:block;width:24px;height:24px;padding:2px 10px;box-sizing:content-box;border-radius:999px}
-  .tabscroll .tabs a[aria-current="page"]{background:none;box-shadow:none;color:var(--accent)}
-  .tabscroll .tabs a[aria-current="page"] .ti{background:var(--accent-soft)}
-  body{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
-  body .fab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
-  body .editfab{bottom:calc(142px + env(safe-area-inset-bottom,0px))}
-  body .toast{bottom:calc(140px + env(safe-area-inset-bottom,0px))}
+  /* Floating tab bar, like iOS: a rounded, frosted pill above the home indicator */
+  :root{--navb:max(12px,calc(env(safe-area-inset-bottom,0px) - 6px));--navh:64px}
+  .tabscroll{position:fixed;left:max(14px,env(safe-area-inset-left,0px));right:max(14px,env(safe-area-inset-right,0px));bottom:var(--navb);top:auto;z-index:9;max-width:560px;margin:0 auto;
+    overflow:visible;padding:5px;border-radius:999px;background:var(--navbg);border:1px solid var(--navline);
+    -webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6);
+    box-shadow:0 10px 30px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.08)}
+  .tabscroll .tabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);width:100%;background:none;padding:0;border-radius:0}
+  .tabscroll .tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:calc(var(--navh) - 12px);padding:0 2px;border-radius:999px;
+    font-size:11px;font-weight:600;color:var(--ink);opacity:.78;min-width:0;-webkit-tap-highlight-color:transparent;transition:background .18s,color .18s,opacity .18s}
+  .tabscroll .tabs a span{overflow:hidden;text-overflow:ellipsis;max-width:100%;white-space:nowrap}
+  .tabscroll .tabs a .ti{display:block;width:24px;height:24px;padding:0;border-radius:0}
+  .tabscroll .tabs a[aria-current="page"]{background:var(--navactive);box-shadow:none;color:var(--accent);opacity:1}
+  .tabscroll .tabs a:active{transform:scale(.96)}
+  body{padding-bottom:calc(var(--navb) + var(--navh) + 96px)}
+  body .fab{bottom:calc(var(--navb) + var(--navh) + 14px)}
+  body .editfab{bottom:calc(var(--navb) + var(--navh) + 78px)}
+  body .toast{bottom:calc(var(--navb) + var(--navh) + 76px)}
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.tabscroll{background:var(--surface)}}
 }
 .tabs .ti{display:none}
-@media (max-width:360px){.tabscroll .tabs a{font-size:10px;letter-spacing:-.01em}.tabscroll .tabs a .ti{padding:2px 6px}}
+@media (max-width:360px){.tabscroll .tabs a{font-size:10px;letter-spacing:-.01em}}
 .tabs{display:inline-flex;background:var(--sunk);border-radius:999px;padding:3px;white-space:nowrap}
 .tabs a{padding:6px 13px;border-radius:999px;text-decoration:none;color:var(--muted);font-weight:600;font-size:14px}
 .tabs a[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
