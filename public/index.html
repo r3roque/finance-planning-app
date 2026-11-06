@@ -392,7 +392,9 @@ tr.total td{font-weight:700;border-bottom:0}
 tr.sub td{color:var(--muted)}
 .tbl tr.grp .tgl{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
 .tbl tr.grp .tgl .arrow{display:inline-block;width:12px;color:var(--muted);transition:transform .15s}.tbl tr.grp .tgl .arrow.open{transform:rotate(90deg)}
-.tbl tr.child td{font-size:.92em}.tbl tr.child td:first-child{padding-left:30px;position:relative}
+.tbl tr.child td{font-size:.92em}
+@media (max-width:520px){.tbl table.three{min-width:0;font-size:13px}.tbl table.three th,.tbl table.three td{padding:7px 3px}.tbl table.three th{white-space:normal;vertical-align:bottom}
+  .tbl table.three td:first-child{white-space:normal}.tbl table.three tr.child td:first-child{padding-left:18px}.tbl table.three tr.child td:first-child::before{left:6px}}.tbl tr.child td:first-child{padding-left:30px;position:relative}
 .tbl tr.child td:first-child::before{content:"";position:absolute;left:12px;top:0;bottom:0;border-left:2px solid var(--line)}
 @media (max-width:520px){table{min-width:0}th,td{padding:8px 4px;font-size:14px}td:first-child,th:first-child{white-space:normal}}
 
@@ -792,7 +794,8 @@ function capFor(cfg,year){
 }
 // Month-by-month detail for one calendar year from actual paydays.
 // The retirement yearly max fills in payday order across all paychecks.
-function yearSchedule(cfg,year){
+// With `until` (a date), also returns ytd: totals for paydays on or before that date.
+function yearSchedule(cfg,year,until){
   year=String(year);
   const cap=capFor(cfg,year),ys=year+'-01-01',ye=year+'-12-31';let used=0,reached=0;
   const part=()=>({gross:0,ded:{},tax:{},dedTotal:0,taxTotal:0,net:0});
@@ -806,27 +809,30 @@ function yearSchedule(cfg,year){
   ev.sort((a,b)=>a.d.localeCompare(b.d)||String(a.pc.start||'').localeCompare(String(b.pc.start||'')));
   const deds=cfg.income.payrollDeductions||[];
   const take=(x,a,m)=>{if(x.retirement&&cap>0){const left=Math.max(0,cap-used);if(a>=left-1e-9){a=left;if(!reached)reached=m;}used+=a;}else if(x.retirement)used+=a;return a;};
-  const book=(o,K,B,x,a)=>{const nm=x.name||'Deduction',T=dedTaxLike(x);
+  const ytd={pay:part(),bonus:part()};
+  const book=(o,K,B,x,a,d,kind)=>{const nm=x.name||'Deduction',T=dedTaxLike(x);
+    if(until&&d&&d<=until){const Y=ytd[kind];if(T){Y.tax[nm]=(Y.tax[nm]||0)+a;Y.taxTotal+=a;}else{Y.ded[nm]=(Y.ded[nm]||0)+a;Y.dedTotal+=a;}}
     if(T){o.tax[nm]=(o.tax[nm]||0)+a;o.taxTotal+=a;K.tax[nm]=(K.tax[nm]||0)+a;K.taxTotal+=a;if(B)B.tax+=a;}
     else{o.ded[nm]=(o.ded[nm]||0)+a;o.dedTotal+=a;K.ded[nm]=(K.ded[nm]||0)+a;K.dedTotal+=a;if(B)B.ded+=a;}
     if(x.retirement)o.retire+=a;if(x.withheld)o.withheld+=a;if(x.nonTaxable)o.nonTax+=a;};
   // Monthly deductions: once per month, split evenly across that month's paydays from the paychecks they apply to.
   const flush=mi=>{if(mi<0)return;const o=months[mi],regs=o.regs;if(!regs.length)return;
     deds.forEach(d=>{if(d.mode!=='monthly'||!num(d.value,0))return;const act=regs.filter(e=>dedOn(d,e.d)&&dedApplies(d,e.pc));if(!act.length)return;
-      const a=take(d,num(d.value,0),mi+1),sh=a/act.length;act.forEach(e=>book(o,o.k[e.pc.bonus?'bonus':'pay'],o.byPc[e.pc.id],d,sh));});};
+      const a=take(d,num(d.value,0),mi+1),sh=a/act.length;act.forEach(e=>{const kd=e.pc.bonus?'bonus':'pay';book(o,o.k[kd],o.byPc[e.pc.id],d,sh,e.d,kd);});});};
   let cur=-1;
   ev.forEach(({d,pc})=>{
     const m=+d.slice(5,7),o=months[m-1];
     if(m-1!==cur){flush(cur);cur=m-1;}
     let B=o.byPc[pc.id];if(!B){B=o.byPc[pc.id]={gross:0,ded:0,tax:0,count:0};o.active++;}
     const K=o.k[pc.bonus?'bonus':'pay'],g=num(pc.gross,0);
-    B.count++;B.gross+=g;o.gross+=g;K.gross+=g;
+    B.count++;B.gross+=g;o.gross+=g;K.gross+=g;if(until&&d<=until)ytd[pc.bonus?'bonus':'pay'].gross+=g;
     o.regs.push({d,pc});
-    payItemsAt(pc,deds,d).forEach(x=>book(o,K,B,x,take(x,x.per,m)));
+    payItemsAt(pc,deds,d).forEach(x=>book(o,K,B,x,take(x,x.per,m),d,pc.bonus?'bonus':'pay'));
   });
   flush(cur);
   months.forEach(o=>{o.net=o.gross-o.dedTotal-o.taxTotal;for(const k in o.k){const q=o.k[k];q.net=q.gross-q.dedTotal-q.taxTotal;}});
-  return {months,cap,used,reached};
+  for(const k in ytd){const q=ytd[k];q.net=q.gross-q.dedTotal-q.taxTotal;}
+  return {months,cap,used,reached,ytd};
 }
 function monthIncome(cfg,month){
   const o=yearSchedule(cfg,month.slice(0,4)).months[+month.slice(5,7)-1];
@@ -2631,33 +2637,37 @@ function vIncome(){
     h('button',{class:'btn primary',type:'button',onclick:()=>addPaycheck(Y)},'Add paycheck')));
   // overall gross to net
   const right=h('div',{class:'stack'});
-  const row=(label,m,y,cls)=>h('tr',{class:cls||''},h('td',{},label),isCur?h('td',{class:'num'},money(m)):null,h('td',{class:'num'},money(y)));
   const yMonths=Array.from({length:12},(_,i)=>Y+'-'+String(i+1).padStart(2,'0'));
   const Pm=incomeBreakdown(S.cfg,[cm],'pay'),Py=incomeBreakdown(S.cfg,yMonths,'pay');
   const Qm=incomeBreakdown(S.cfg,[cm],'bonus'),Qy=incomeBreakdown(S.cfg,yMonths,'bonus');
-  const hasB=Qy.gross>0||(isCur&&Qm.gross>0);
-  const names=(a,b,k)=>[...new Set([...Object.keys(b[k]),...(isCur?Object.keys(a[k]):[])])];
+  const YT=isCur?yearSchedule(S.cfg,Y,today()).ytd:null;
+  // Columns: this month, year to date and the full year for the current year; the year alone otherwise.
+  const pay=isCur?[Pm,YT.pay,Py]:[Py],bon=isCur?[Qm,YT.bonus,Qy]:[Qy];
+  const hasB=bon.some(x=>x.gross>0);
+  const narrow=isCur&&matchMedia('(max-width:520px)').matches,fm=v=>narrow?money0(v):money(v);
+  const row=(label,vals,cls)=>h('tr',{class:cls||''},h('td',{},label),...vals.map(v=>h('td',{class:'num'},fm(v))));
+  const names=(cols,k)=>[...new Set(cols.flatMap(c=>Object.keys(c[k])))];
   // Deductions and Taxes are folded subtotals; opening one lists its items indented underneath.
-  const group=(key,label,M,Yr,kind)=>{
-    const items=names(M,Yr,kind),open=ptOpen.has(key);
-    if(!items.length&&!M[kind+'Total']&&!Yr[kind+'Total'])return [];
+  const group=(key,label,cols,kind)=>{
+    const items=names(cols,kind),open=ptOpen.has(key);
+    if(!items.length&&!cols.some(c=>c[kind+'Total']))return [];
     const btn=h('button',{type:'button',class:'tgl','aria-expanded':String(open),onclick:()=>{if(open)ptOpen.delete(key);else ptOpen.add(key);render();}},
       h('span',{class:'arrow'+(open?' open':''),'aria-hidden':'true'},'›'),label);
-    return [h('tr',{class:'grp'},h('td',{},btn),isCur?h('td',{class:'num'},money(-M[kind+'Total'])):null,h('td',{class:'num'},money(-Yr[kind+'Total']))),
-      ...(open?items.map(k=>row(k,-(M[kind][k]||0),-(Yr[kind][k]||0),'sub child')):[])];
+    return [h('tr',{class:'grp'},h('td',{},btn),...cols.map(c=>h('td',{class:'num'},fm(-c[kind+'Total'])))),
+      ...(open?items.map(k=>row(k,cols.map(c=>-(c[kind][k]||0)),'sub child')):[])];
   };
-  const section=(key,M,Yr,grossLabel,netLabel)=>[row(grossLabel,M.gross,Yr.gross),
-    ...group(key+'-ded','Deductions',M,Yr,'ded'),...group(key+'-tax','Taxes',M,Yr,'tax'),
-    row(netLabel,M.net,Yr.net,'total')];
-  const span=isCur?3:2;
-  right.append(h('div',{class:'card'},h('h3',{},'From pay to take-home'),h('div',{class:'tbl'},h('table',{},
-    h('thead',{},h('tr',{},h('th',{},hasB?'Paychecks':'All paychecks'),isCur?h('th',{},'This month'):null,h('th',{},String(Y)))),
-    h('tbody',{},...section('pay',Pm,Py,'Gross income','Net pay'),
+  const section=(key,cols,grossLabel,netLabel)=>[row(grossLabel,cols.map(c=>c.gross)),
+    ...group(key+'-ded','Deductions',cols,'ded'),...group(key+'-tax','Taxes',cols,'tax'),
+    row(netLabel,cols.map(c=>c.net),'total')];
+  const span=pay.length+1;
+  right.append(h('div',{class:'card'},h('h3',{},'From pay to take-home'),h('div',{class:'tbl'},h('table',{class:isCur?'three':''},
+    h('thead',{},h('tr',{},h('th',{},hasB?'Paychecks':'All paychecks'),...(isCur?[h('th',{},'This month'),h('th',{},narrow?'To date':'Year to date'),h('th',{},'Full '+Y)]:[h('th',{},String(Y))]))),
+    h('tbody',{},...section('pay',pay,'Gross income','Net pay'),
       ...(hasB?[h('tr',{},h('td',{colspan:span,style:'border:0;padding-top:16px'},h('span',{class:'eyebrow'},'Bonuses'))),
-        ...section('bonus',Qm,Qy,'Bonuses','Net bonuses'),
+        ...section('bonus',bon,'Bonuses','Net bonuses'),
         h('tr',{},h('td',{colspan:span,style:'border:0;padding:4px'})),
-        row('Net income with bonuses',Pm.net+Qm.net,Py.net+Qy.net,'total')]:[])))),
-    h('p',{class:'hint',style:'margin:8px 0 0'},'Adds up every payday '+(isCur?'in the month and the year':'in '+Y)+'. Deductions with the same name are combined. Paychecks marked as a bonus are listed separately.')));
+        row('Net income with bonuses',pay.map((c,i)=>c.net+bon[i].net),'total')]:[])))),
+    h('p',{class:'hint',style:'margin:8px 0 0'},(isCur?'This month and Full '+Y+' include paydays still ahead; Year to date counts paydays through today, '+fmtDate(today())+'. ':'Adds up every payday in '+Y+'. ')+'Deductions with the same name are combined. Paychecks marked as a bonus are listed separately.')));
   grid.append(left,right);root.append(grid);
   root.append(simpleNote());
   return root;
