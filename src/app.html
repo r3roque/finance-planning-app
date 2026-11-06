@@ -509,18 +509,10 @@ footer.status{margin-top:26px;color:var(--muted);font-size:12px;text-align:cente
 .addopt .chev{width:16px;height:16px;color:var(--muted);opacity:.6;flex:none}
 .addopt+.addopt::before{left:66px}
 .addsheet .sheet{gap:10px}
-/* + button: a round glass button. On phones it sits beside the tab bar, like iOS 26. */
+/* + button: the Add pill above the tab bar on phones, bottom right on larger screens. */
 body #fab{background:var(--accent);color:var(--accent-ink);border:0;box-shadow:0 10px 30px rgba(0,0,0,.2),0 2px 6px rgba(0,0,0,.1)}
 #fab .plus{width:22px;height:22px}
 #fab:active{transform:scale(.94)}
-@media (max-width:700px){
-  .tabscroll{right:calc(max(14px,env(safe-area-inset-right,0px)) + var(--navh) + 10px)}
-  body #fab{bottom:var(--navb);right:max(14px,env(safe-area-inset-right,0px));width:var(--navh);height:var(--navh);padding:0;border-radius:50%;justify-content:center}
-  body #fab .plus{width:28px;height:28px}
-  body #fab .fablabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-  body #donefab,body .editfab{bottom:calc(var(--navb) + var(--navh) + 14px)}
-  body .toast{bottom:calc(var(--navb) + var(--navh) + 14px)}
-}
 </style>
 
 <div class="wrap">
