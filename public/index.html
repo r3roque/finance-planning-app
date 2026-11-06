@@ -526,8 +526,10 @@ footer.status{margin-top:26px;color:var(--muted);font-size:12px;text-align:cente
 .irow>label{font-size:16px;font-weight:400;color:var(--ink);flex:none}
 .irow select,.irow input[type=date],.irow input[type=text]{border:0;background:none;box-shadow:none;outline:none;height:48px;padding:0;font:inherit;font-size:16px;color:var(--muted);text-align:right;text-align-last:right;flex:1;min-width:0;-webkit-appearance:none;appearance:none}
 .irow select{color:var(--accent);font-weight:600;cursor:pointer;padding-right:18px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A6A0' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5-5 5 5M7 14l5 5 5-5'/%3E%3C/svg%3E") no-repeat right center/14px}
-.irow input[type=date]{color:var(--accent);font-weight:600;justify-content:flex-end}
-.irow input[type=date]::-webkit-date-and-time-value{text-align:right}
+.irow input[type=date]{color:var(--accent);font-weight:600;justify-content:flex-end;display:block;height:48px;min-height:48px;line-height:48px;padding:0;margin:0;box-sizing:border-box}
+/* iOS Safari draws the date at the top of a tall box; pin the inner value to the row's middle and right edge */
+.irow input[type=date]::-webkit-date-and-time-value{text-align:right;margin:0;padding:0;line-height:48px;height:48px;display:flex;align-items:center;justify-content:flex-end}
+.irow input[type=date]::-webkit-datetime-edit{padding:0;line-height:48px}
 .irow input[type=text]{color:var(--ink)}
 .irow input[type=text]::placeholder{color:var(--muted);opacity:.7}
 .irow:focus-within{background:var(--sunk)}
