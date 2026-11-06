@@ -2327,13 +2327,15 @@ function payStatus(pc){
   return h('span',{class:'pill rec'},ok(pc.end)?'Active until '+fmtDate(pc.end):'Active');
 }
 const openSubs=new Set();
-const openPcs=new Set();
+// Paycheck cards: active ones start open and inactive ones folded; each remembers being opened or folded.
+const pcOpen=new Map(),openPcs={add:id=>pcOpen.set(id,true)};
 function payRank(pc){const t=today(),ok=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'');if(pc.period==='once')return !ok(pc.start)||pc.start===t?0:pc.start>t?1:2;return ok(pc.start)&&pc.start>t?1:ok(pc.end)&&pc.end<t?2:0;}
 function payRange(pc){const ok=v=>/^\d{4}-\d{2}-\d{2}$/.test(v||'');if(pc.period==='once')return ok(pc.start)?'One time, '+fmtDate(pc.start):'One time, no date';return (ok(pc.start)?fmtDate(pc.start):'No start date')+' – '+(ok(pc.end)?fmtDate(pc.end):'ongoing');}
 function paycheckCard(pc,I){
   const P=C.payCalc(pc),inactive=payRank(pc)!==0;
-  const toggle=()=>{if(openPcs.has(pc.id))openPcs.delete(pc.id);else openPcs.add(pc.id);render();};
-  if(inactive&&!openPcs.has(pc.id)){
+  const isOpen=pcOpen.has(pc.id)?pcOpen.get(pc.id):!inactive;
+  const toggle=()=>{pcOpen.set(pc.id,!isOpen);render();};
+  if(!isOpen){
     return h('div',{class:'card'},h('button',{type:'button',class:'pcfold','aria-expanded':'false',onclick:toggle},
       h('span',{class:'arrow','aria-hidden':'true'},'›'),
       h('span',{class:'pcname'},pc.name,h('small',{},(pc.bonus?'Bonus · ':'')+payRange(pc))),
@@ -2341,8 +2343,8 @@ function paycheckCard(pc,I){
       h('span',{class:'num pcnet'},money(P.pNet),h('small',{},pc.period==='once'?'net':'net per paycheck'))));
   }
   const card=h('div',{class:'card stack'});
-  card.append(h('div',{class:'cathead',style:'grid-template-columns:'+(inactive?'auto ':'')+'minmax(0,1fr) auto auto;margin:0'},
-    inactive?h('button',{type:'button',class:'pcfold-btn','aria-label':'Collapse '+pc.name,'aria-expanded':'true',onclick:toggle},h('span',{class:'arrow open','aria-hidden':'true'},'›')):null,
+  card.append(h('div',{class:'cathead',style:'grid-template-columns:auto minmax(0,1fr) auto auto;margin:0'},
+    h('button',{type:'button',class:'pcfold-btn','aria-label':'Collapse '+pc.name,'aria-expanded':'true',onclick:toggle},h('span',{class:'arrow open','aria-hidden':'true'},'›')),
     txt('pcn-'+pc.id,pc.name,(v,el)=>{if(!v){el.value=pc.name;return;}pc.name=v;save();}),
     payStatus(pc),
     I.paychecks.length>1?del('Delete paycheck '+pc.name,()=>{I.paychecks=I.paychecks.filter(x=>x.id!==pc.id);save();toast('Deleted “'+pc.name+'”');}):h('span',{})));
