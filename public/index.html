@@ -168,9 +168,11 @@ body.scrolled header.top{border-bottom-color:var(--line)}
 .field{display:grid;gap:6px;align-content:start;min-width:0}
 .field>label{font-weight:600;font-size:14px}
 input[type=text],input[type=date],input[type=email],input[type=password],select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:0 11px;width:100%;min-width:0;height:40px;line-height:normal;font-size:15px;display:block;margin:0}
-input[type=date]{-webkit-appearance:none;appearance:none}
-input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
-input[type=date]::-webkit-datetime-edit{padding:0}
+/* Date fields: iPhone browsers draw the date at the top of the box, or let an empty field collapse.
+   Fix the height and center the text on one line, left-aligned like the other fields. */
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;box-sizing:border-box;min-height:40px;line-height:38px;padding-top:0;padding-bottom:0}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;padding:0;line-height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start}
+input[type=date]::-webkit-datetime-edit{padding:0;line-height:38px}
 input:focus,select:focus{border-color:var(--accent);outline:none}
 .money,.pct{position:relative;min-width:0}
 .money::before{content:"$";position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
